@@ -2,37 +2,27 @@ import Foundation
 
 /**
  * Manages FMOD Studio system and event instances for iOS.
- *
- * Note: This implementation requires FMOD Studio framework to be present in ios/Frameworks/
- * You must download FMOD Engine for iOS from https://www.fmod.com/download
+ * Uses FmodBridge (Objective-C) to interface with FMOD C API.
  */
 class FmodManager {
-    private var studioSystem: OpaquePointer?
-    private var coreSystem: OpaquePointer?
-    private var eventInstances: [String: OpaquePointer] = [:]
+    private let bridge = FmodBridge()
+    private var updateTimer: Timer?
     
     /**
      * Initialize the FMOD Studio system.
      * @return true if initialization was successful
      */
     func initialize() -> Bool {
-        // Note: The actual FMOD C API calls would go here
-        // This is a placeholder implementation showing the structure
+        let success = bridge.initializeFmod()
         
-        // In a real implementation, you would:
-        // 1. Call FMOD_Studio_System_Create(&studioSystem, FMOD_VERSION)
-        // 2. Call FMOD_Studio_System_GetCoreSystem(studioSystem, &coreSystem)
-        // 3. Call FMOD_System_SetOutput(coreSystem, FMOD_OUTPUTTYPE_AUTODETECT)
-        // 4. Call FMOD_Studio_System_Initialize(studioSystem, 512, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, nil)
+        if success {
+            // Start update timer to call FMOD update regularly (60 times per second)
+            updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { [weak self] _ in
+                self?.bridge.update()
+            }
+        }
         
-        print("FmodManager: Initialize called (placeholder)")
-        print("FmodManager: FMOD is not configured. To use FMOD, you must:")
-        print("  1. Download FMOD Engine for iOS from https://www.fmod.com/download")
-        print("  2. Add fmod.framework to packages/fmod_flutter/ios/Frameworks/")
-        print("  3. Implement the actual FMOD C API calls in FmodManager.swift")
-        
-        // Return false to indicate FMOD is not actually configured
-        return false
+        return success
     }
     
     /**
@@ -41,14 +31,46 @@ class FmodManager {
      * @return true if all banks loaded successfully
      */
     func loadBanks(_ bankPaths: [String]) -> Bool {
-        print("FmodManager: Load banks called with \(bankPaths.count) banks (placeholder)")
+        var allLoaded = true
         
-        // In a real implementation, for each bank:
-        // 1. Get the full path using Bundle.main.path
-        // 2. Call FMOD_Studio_System_LoadBankFile(studioSystem, path, FMOD_STUDIO_LOAD_BANK_NORMAL, &bank)
+        for bankPath in bankPaths {
+            // Flutter assets are in Frameworks/App.framework/flutter_assets/
+            let flutterAssetsPath = Bundle.main.path(forResource: "Frameworks/App.framework/flutter_assets", ofType: nil)
+            
+            var fullPath: String?
+            
+            if let assetsPath = flutterAssetsPath {
+                // Try with flutter_assets prefix
+                fullPath = "\(assetsPath)/\(bankPath)"
+            }
+            
+            // If not found, try without prefix (the path might already be relative to assets)
+            if fullPath == nil || !FileManager.default.fileExists(atPath: fullPath!) {
+                // Try as direct path in Flutter.framework
+                let appBundle = Bundle.main.path(forResource: "Frameworks/App.framework/flutter_assets/\(bankPath)", ofType: nil)
+                fullPath = appBundle
+            }
+            
+            // Last resort: try in main bundle directly
+            if fullPath == nil || !FileManager.default.fileExists(atPath: fullPath!) {
+                fullPath = Bundle.main.path(forResource: bankPath, ofType: nil)
+            }
+            
+            guard let validPath = fullPath, FileManager.default.fileExists(atPath: validPath) else {
+                print("FmodManager: Bank file not found: \(bankPath)")
+                allLoaded = false
+                continue
+            }
+            
+            if !bridge.loadBank(atPath: validPath) {
+                allLoaded = false
+            }
+        }
         
-        // Return false to indicate FMOD is not actually configured
-        return false
+        // After loading all banks, log what events are available
+        bridge.logAvailableEvents()
+        
+        return allLoaded
     }
     
     /**
@@ -56,13 +78,10 @@ class FmodManager {
      * @param path Event path (e.g., "event:/Music/MainTheme")
      */
     func playEvent(_ path: String) {
-        print("FmodManager: Play event '\(path)' (placeholder)")
-        
-        // In a real implementation:
-        // 1. FMOD_Studio_System_GetEvent(studioSystem, path, &eventDescription)
-        // 2. FMOD_Studio_EventDescription_CreateInstance(eventDescription, &eventInstance)
-        // 3. FMOD_Studio_EventInstance_Start(eventInstance)
-        // 4. Store eventInstance in eventInstances dictionary
+        let success = bridge.playEvent(path)
+        if !success {
+            print("FmodManager: Failed to play event: \(path)")
+        }
     }
     
     /**
@@ -70,12 +89,10 @@ class FmodManager {
      * @param path Event path
      */
     func stopEvent(_ path: String) {
-        print("FmodManager: Stop event '\(path)' (placeholder)")
-        
-        // In a real implementation:
-        // 1. Get instance from eventInstances[path]
-        // 2. FMOD_Studio_EventInstance_Stop(instance, FMOD_STUDIO_STOP_ALLOWFADEOUT)
-        // 3. Remove from eventInstances dictionary
+        let success = bridge.stopEvent(path)
+        if !success {
+            print("FmodManager ERROR: Failed to stop event: \(path)")
+        }
     }
     
     /**
@@ -85,11 +102,7 @@ class FmodManager {
      * @param value Parameter value
      */
     func setParameter(path: String, paramName: String, value: Float) {
-        print("FmodManager: Set parameter '\(paramName)' = \(value) on '\(path)' (placeholder)")
-        
-        // In a real implementation:
-        // 1. Get instance from eventInstances[path]
-        // 2. FMOD_Studio_EventInstance_SetParameterByName(instance, paramName, value, false)
+        _ = bridge.setParameterForEvent(path, paramName: paramName, value: value)
     }
     
     /**
@@ -98,11 +111,7 @@ class FmodManager {
      * @param paused Whether to pause (true) or resume (false)
      */
     func setPaused(path: String, paused: Bool) {
-        print("FmodManager: Set paused = \(paused) on '\(path)' (placeholder)")
-        
-        // In a real implementation:
-        // 1. Get instance from eventInstances[path]
-        // 2. FMOD_Studio_EventInstance_SetPaused(instance, paused)
+        _ = bridge.setPausedForEvent(path, paused: paused)
     }
     
     /**
@@ -111,11 +120,7 @@ class FmodManager {
      * @param volume Volume (0.0 to 1.0)
      */
     func setVolume(path: String, volume: Float) {
-        print("FmodManager: Set volume = \(volume) on '\(path)' (placeholder)")
-        
-        // In a real implementation:
-        // 1. Get instance from eventInstances[path]
-        // 2. FMOD_Studio_EventInstance_SetVolume(instance, volume)
+        _ = bridge.setVolumeForEvent(path, volume: volume)
     }
     
     /**
@@ -123,23 +128,21 @@ class FmodManager {
      * Should be called regularly (e.g., once per frame).
      */
     func update() {
-        // In a real implementation:
-        // FMOD_Studio_System_Update(studioSystem)
+        bridge.update()
     }
     
     /**
      * Release all FMOD resources.
      */
     func release() {
-        print("FmodManager: Release called (placeholder)")
+        // Stop the update timer
+        updateTimer?.invalidate()
+        updateTimer = nil
         
-        // In a real implementation:
-        // 1. Release all event instances
-        // 2. FMOD_Studio_System_Release(studioSystem)
-        
-        eventInstances.removeAll()
-        studioSystem = nil
-        coreSystem = nil
+        bridge.releaseFmod()
+    }
+    
+    deinit {
+        release()
     }
 }
-

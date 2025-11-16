@@ -79,8 +79,11 @@ engines/ios/fmodstudioapi*/
 engines/html5/fmodstudio*/
 android/libs/*.aar
 android/libs/*.jar
+example/android/app/src/main/jniLibs/
+ios/FMOD/
 ios/Frameworks/*.framework
 ios/Frameworks/*.xcframework
 web/assets/fmod/*.js
 web/assets/fmod/*.wasm
+example/web/fmod/
 

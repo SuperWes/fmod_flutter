@@ -1,0 +1,406 @@
+#!/usr/bin/env dart
+
+/// FMOD Flutter Setup Script
+/// This script should be run from your Flutter project root.
+/// 
+/// Usage:
+///   dart run fmod_flutter:setup_fmod
+///
+/// This will:
+/// 1. Look for FMOD SDK archives in fmod_sdks/
+/// 2. Extract them if needed
+/// 3. Copy native libraries to your project's android/, ios/, and web/ directories
+
+import 'dart:io';
+
+void main() async {
+  print('🎵 FMOD Flutter Setup\n');
+
+  // This script runs from the user's project root
+  final projectRoot = Directory.current;
+  final fmodSdksDir = Directory('${projectRoot.path}/fmod_sdks');
+
+  print('📁 Project root: ${projectRoot.path}');
+  print('📁 Looking for FMOD SDKs in: ${fmodSdksDir.path}\n');
+
+  // Check if project has pubspec.yaml (sanity check)
+  final pubspecFile = File('${projectRoot.path}/pubspec.yaml');
+  if (!await pubspecFile.exists()) {
+    print('❌ No pubspec.yaml found in current directory!');
+    print('   Please run this command from your Flutter project root.\n');
+    exit(1);
+  }
+
+  // Check if fmod_sdks directory exists
+  if (!await fmodSdksDir.exists()) {
+    print('❌ fmod_sdks/ directory not found!');
+    print('\n📖 Setup Instructions:\n');
+    print('1. Create a directory named "fmod_sdks" in your project root:');
+    print('   mkdir fmod_sdks\n');
+    print('2. Download FMOD Engine SDKs from https://www.fmod.com/download');
+    print('   (Requires free account)\n');
+    print('3. Place the downloaded files in fmod_sdks/:');
+    print('   - fmodstudioapi*android.tar.gz');
+    print('   - fmodstudioapi*ios-installer.dmg');
+    print('   - fmodstudioapi*html5.zip\n');
+    print('4. Run this command again: dart run fmod_flutter:setup_fmod\n');
+    exit(1);
+  }
+
+  // Extract archives if needed
+  await extractArchives(fmodSdksDir);
+
+  var success = true;
+
+  // Setup Android
+  success = await setupAndroid(projectRoot, fmodSdksDir) && success;
+  
+  // Setup iOS
+  success = await setupIOS(projectRoot, fmodSdksDir) && success;
+  
+  // Setup Web
+  success = await setupWeb(projectRoot, fmodSdksDir) && success;
+
+  if (success) {
+    print('\n✅ FMOD setup complete!');
+    print('   Your project is now configured to use FMOD on all platforms.');
+    print('\n📝 Next steps:');
+    print('   1. Place your FMOD bank files in assets/audio/');
+    print('   2. Update pubspec.yaml to include your banks as assets');
+    print('   3. Run: flutter run');
+    print('\n📚 See the plugin documentation for usage examples.\n');
+  } else {
+    print('\n⚠️  Setup completed with warnings.');
+    print('   Check the messages above for details.\n');
+  }
+}
+
+Future<void> extractArchives(Directory fmodSdksDir) async {
+  print('📦 Checking for FMOD SDK archives...\n');
+
+  final entities = await fmodSdksDir.list().toList();
+  var extracted = false;
+
+  for (final entity in entities) {
+    if (entity is! File) continue;
+    
+    final path = entity.path;
+    final fileName = path.split('/').last;
+
+    // Android: .tar.gz
+    if (fileName.endsWith('.tar.gz') && fileName.contains('android')) {
+      print('   Found Android SDK: $fileName');
+      final destDir = Directory('${fmodSdksDir.path}/android');
+      await destDir.create(recursive: true);
+      
+      final result = await Process.run(
+        'tar',
+        ['-xzf', path, '-C', destDir.path],
+      );
+      
+      if (result.exitCode == 0) {
+        print('   ✓ Extracted to fmod_sdks/android/');
+        extracted = true;
+      } else {
+        print('   ⚠️  Failed to extract: ${result.stderr}');
+      }
+    }
+    
+    // iOS: .dmg
+    else if (fileName.endsWith('.dmg') && fileName.contains('ios')) {
+      print('   Found iOS SDK: $fileName');
+      final destDir = Directory('${fmodSdksDir.path}/ios');
+      await destDir.create(recursive: true);
+      
+      print('   Mounting DMG...');
+      var result = await Process.run('hdiutil', ['attach', path, '-nobrowse', '-quiet']);
+      
+      if (result.exitCode == 0) {
+        await Future.delayed(Duration(seconds: 1));
+        
+        // Find mounted volume
+        final volumes = await Directory('/Volumes').list().toList();
+        Directory? fmodVolume;
+        
+        for (final vol in volumes) {
+          if (vol is Directory) {
+            final volName = vol.path.split('/').last.toLowerCase();
+            if (volName.contains('fmod') && !volName.contains('studio')) {
+              fmodVolume = vol;
+              break;
+            }
+          }
+        }
+        
+        if (fmodVolume != null) {
+          // Find SDK directory
+          final contents = await fmodVolume.list().toList();
+          Directory? sdkDir;
+          
+          for (final item in contents) {
+            if (item is Directory && (item.path.contains('fmodstudioapi') || 
+                item.path.contains('FMOD Programmers API'))) {
+              sdkDir = item;
+              break;
+            }
+          }
+          
+          if (sdkDir != null) {
+            var sdkName = sdkDir.path.split('/').last;
+            if (sdkName.contains('FMOD Programmers API')) {
+              final match = RegExp(r'fmodstudioapi(\d+)').firstMatch(fileName);
+              sdkName = match != null ? 'fmodstudioapi${match.group(1)}ios' : 'fmodstudioapi-ios';
+            }
+            
+            final targetDir = Directory('${destDir.path}/$sdkName');
+            print('   Copying SDK...');
+            await _copyDirectory(sdkDir, targetDir);
+            print('   ✓ Extracted to fmod_sdks/ios/$sdkName');
+            extracted = true;
+          }
+          
+          await Process.run('hdiutil', ['detach', fmodVolume.path, '-quiet']);
+        }
+      }
+    }
+    
+    // Web/HTML5: .zip
+    else if (fileName.endsWith('.zip') && fileName.contains('html5')) {
+      print('   Found HTML5 SDK: $fileName');
+      final destDir = Directory('${fmodSdksDir.path}/html5');
+      await destDir.create(recursive: true);
+      
+      final result = await Process.run(
+        'unzip',
+        ['-q', '-o', path, '-d', destDir.path],
+      );
+      
+      if (result.exitCode == 0) {
+        print('   ✓ Extracted to fmod_sdks/html5/');
+        extracted = true;
+      } else {
+        print('   ⚠️  Failed to extract: ${result.stderr}');
+      }
+    }
+  }
+
+  if (extracted) {
+    print('');
+  } else {
+    print('   SDKs already extracted.\n');
+  }
+}
+
+Future<bool> setupAndroid(Directory projectRoot, Directory fmodSdksDir) async {
+  print('🤖 Setting up Android...');
+
+  final androidSdkDir = Directory('${fmodSdksDir.path}/android');
+  if (!await androidSdkDir.exists()) {
+    print('   ⚠️  android/ not found in fmod_sdks/');
+    print('   Skipping Android setup.');
+    return false;
+  }
+
+  // Find FMOD SDK
+  final sdkDirs = await androidSdkDir
+      .list()
+      .where((entity) => entity is Directory && entity.path.contains('fmodstudio'))
+      .toList();
+
+  if (sdkDirs.isEmpty) {
+    print('   ⚠️  No FMOD SDK found in fmod_sdks/android/');
+    return false;
+  }
+
+  final sdkDir = sdkDirs.first as Directory;
+  print('   Found: ${sdkDir.path.split('/').last}');
+
+  // Copy native libraries to user's Android app
+  final jniLibsDir = Directory('${projectRoot.path}/android/app/src/main/jniLibs');
+  
+  final architectures = ['arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'];
+  var copied = 0;
+  
+  for (final arch in architectures) {
+    final archDir = Directory('${jniLibsDir.path}/$arch');
+    await archDir.create(recursive: true);
+    
+    // Copy core library
+    final coreLib = File('${sdkDir.path}/api/core/lib/$arch/libfmod.so');
+    if (await coreLib.exists()) {
+      await coreLib.copy('${archDir.path}/libfmod.so');
+      copied++;
+    }
+    
+    // Copy studio library
+    final studioLib = File('${sdkDir.path}/api/studio/lib/$arch/libfmodstudio.so');
+    if (await studioLib.exists()) {
+      await studioLib.copy('${archDir.path}/libfmodstudio.so');
+      copied++;
+    }
+  }
+  
+  if (copied > 0) {
+    print('   ✓ Copied $copied native libraries to android/app/src/main/jniLibs/');
+    return true;
+  } else {
+    print('   ⚠️  No native libraries found');
+    return false;
+  }
+}
+
+Future<bool> setupIOS(Directory projectRoot, Directory fmodSdksDir) async {
+  print('\n🍎 Setting up iOS...');
+
+  final iosSdkDir = Directory('${fmodSdksDir.path}/ios');
+  if (!await iosSdkDir.exists()) {
+    print('   ⚠️  ios/ not found in fmod_sdks/');
+    print('   Skipping iOS setup.');
+    return false;
+  }
+
+  // Find FMOD SDK
+  final sdkDirs = await iosSdkDir
+      .list()
+      .where((entity) => entity is Directory && entity.path.contains('fmodstudioapi'))
+      .toList();
+
+  if (sdkDirs.isEmpty) {
+    print('   ⚠️  No FMOD SDK found in fmod_sdks/ios/');
+    return false;
+  }
+
+  final sdkDir = sdkDirs.first as Directory;
+  print('   Found: ${sdkDir.path.split('/').last}');
+
+  // Create FMOD directories in user's iOS project
+  final fmodDir = Directory('${projectRoot.path}/ios/FMOD');
+  final fmodDeviceDir = Directory('${fmodDir.path}/lib/device');
+  final fmodSimDir = Directory('${fmodDir.path}/lib/simulator');
+  final fmodIncludeDir = Directory('${fmodDir.path}/include');
+  
+  await fmodDeviceDir.create(recursive: true);
+  await fmodSimDir.create(recursive: true);
+  await fmodIncludeDir.create(recursive: true);
+
+  // Copy static libraries
+  final libs = [
+    {'file': 'libfmod_iphoneos.a', 'dest': fmodDeviceDir, 'type': 'core'},
+    {'file': 'libfmodstudio_iphoneos.a', 'dest': fmodDeviceDir, 'type': 'studio'},
+    {'file': 'libfmod_iphonesimulator.a', 'dest': fmodSimDir, 'type': 'core'},
+    {'file': 'libfmodstudio_iphonesimulator.a', 'dest': fmodSimDir, 'type': 'studio'},
+  ];
+
+  var libsCopied = 0;
+  for (final lib in libs) {
+    final type = lib['type'] as String;
+    final srcPath = '${sdkDir.path}/api/$type/lib/${lib['file']}';
+    final srcFile = File(srcPath);
+    
+    if (await srcFile.exists()) {
+      final dest = lib['dest'] as Directory;
+      await srcFile.copy('${dest.path}/${lib['file']}');
+      libsCopied++;
+    }
+  }
+
+  // Copy headers
+  var headersCopied = 0;
+  for (final type in ['core', 'studio']) {
+    final incDir = Directory('${sdkDir.path}/api/$type/inc');
+    if (await incDir.exists()) {
+      await for (final entity in incDir.list()) {
+        if (entity is File && entity.path.endsWith('.h')) {
+          final fileName = entity.path.split('/').last;
+          await entity.copy('${fmodIncludeDir.path}/$fileName');
+          headersCopied++;
+        }
+      }
+    }
+  }
+
+  if (libsCopied > 0 && headersCopied > 0) {
+    print('   ✓ Copied $libsCopied libraries and $headersCopied headers to ios/FMOD/');
+    return true;
+  } else {
+    print('   ⚠️  Failed to copy libraries or headers');
+    return false;
+  }
+}
+
+Future<bool> setupWeb(Directory projectRoot, Directory fmodSdksDir) async {
+  print('\n🌐 Setting up Web...');
+
+  final html5SdkDir = Directory('${fmodSdksDir.path}/html5');
+  if (!await html5SdkDir.exists()) {
+    print('   ⚠️  html5/ not found in fmod_sdks/');
+    print('   Skipping Web setup.');
+    return false;
+  }
+
+  // Find FMOD SDK
+  final sdkDirs = await html5SdkDir
+      .list()
+      .where((entity) => entity is Directory && entity.path.contains('fmodstudio'))
+      .toList();
+
+  if (sdkDirs.isEmpty) {
+    print('   ⚠️  No FMOD SDK found in fmod_sdks/html5/');
+    return false;
+  }
+
+  final sdkDir = sdkDirs.first as Directory;
+  print('   Found: ${sdkDir.path.split('/').last}');
+
+  // Copy to user's web directory
+  final webFmodDir = Directory('${projectRoot.path}/web/fmod');
+  await webFmodDir.create(recursive: true);
+
+  final files = [
+    {'src': '${sdkDir.path}/api/core/lib/wasm/fmod.js', 'name': 'fmod.js'},
+    {'src': '${sdkDir.path}/api/core/lib/wasm/fmod.wasm', 'name': 'fmod.wasm'},
+    {'src': '${sdkDir.path}/api/studio/lib/wasm/fmodstudio.js', 'name': 'fmodstudio.js'},
+    {'src': '${sdkDir.path}/api/studio/lib/wasm/fmodstudio.wasm', 'name': 'fmodstudio.wasm'},
+  ];
+
+  var copied = 0;
+  for (final fileInfo in files) {
+    final file = File(fileInfo['src']!);
+    if (await file.exists()) {
+      await file.copy('${webFmodDir.path}/${fileInfo['name']}');
+      copied++;
+    }
+  }
+
+  if (copied > 0) {
+    print('   ✓ Copied $copied files to web/fmod/');
+    
+    // Check if index.html needs updating
+    final indexHtml = File('${projectRoot.path}/web/index.html');
+    if (await indexHtml.exists()) {
+      final content = await indexHtml.readAsString();
+      if (!content.contains('fmod/fmodstudio.js')) {
+        print('\n   📝 NOTE: Add this to your web/index.html <head> section:');
+        print('      <script src="fmod/fmodstudio.js" defer></script>\n');
+      }
+    }
+    
+    return true;
+  } else {
+    print('   ⚠️  No WASM/JS files found');
+    return false;
+  }
+}
+
+Future<void> _copyDirectory(Directory source, Directory destination) async {
+  await destination.create(recursive: true);
+  await for (final entity in source.list(recursive: false)) {
+    if (entity is Directory) {
+      final newDir = Directory('${destination.path}/${entity.path.split('/').last}');
+      await _copyDirectory(entity, newDir);
+    } else if (entity is File) {
+      await entity.copy('${destination.path}/${entity.path.split('/').last}');
+    }
+  }
+}
+

@@ -1,88 +1,138 @@
 # fmod_flutter
 
-A Flutter plugin for FMOD Studio audio engine integration. Play advanced game audio with FMOD's powerful features including 3D audio, real-time parameter control, and professional mixing.
+A Flutter plugin for FMOD Studio audio engine integration. Add professional game audio to your Flutter apps with FMOD's powerful features including 3D audio, real-time parameters, and adaptive music.
 
 ## Features
 
-- ✅ Play FMOD events
-- ✅ Control event parameters in real-time
-- ✅ Pause/resume events
+- ✅ Play FMOD Studio events (music, sound effects, ambient audio)
+- ✅ Real-time parameter control
+- ✅ Pause/resume/stop events
 - ✅ Volume control per event
-- ✅ Load multiple FMOD banks
-- ✅ Cross-platform (Android, iOS & Web)
+- ✅ Multiple bank loading
+- ✅ Cross-platform:
+  - **iOS**: Full native integration (device & simulator)
+  - **Android**: Full native integration
+  - **Web**: Experimental WebAssembly support
 
-## Example App
+---
 
-A complete example app is included in the `example/` directory. It demonstrates:
+## Quick Start: Run the Example App
 
-- FMOD initialization
-- Loading banks
-- Playing music and sound effects
-- Event management
-- UI with status feedback
+The example app includes audio banks, but you need to set up FMOD Engine native libraries first.
 
-To run the example:
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/SuperWes/fmod_flutter.git
+cd fmod_flutter
+```
+
+**What you have now:**
+- ✅ Example app code and audio banks
+- ❌ FMOD Engine native libraries (required to run)
+
+### 2. Download FMOD Engine
+
+FMOD Engine files are proprietary and not included in this repo. Each developer must download them:
+
+1. Create free account at [fmod.com/download](https://www.fmod.com/download)
+2. Download **FMOD Studio API** (NOT FMOD Studio) for your platform:
+   - iOS: `fmodstudioapi*ios-installer.dmg`
+   - Android: `fmodstudioapi*android.tar.gz`
+   - Web: `fmodstudioapi*html5.zip`
+
+### 3. Run Setup Script
+
+```bash
+# Create engines directory
+mkdir engines
+
+# Move your downloaded FMOD files to engines/
+# engines/fmodstudioapi*ios-installer.dmg
+# engines/fmodstudioapi*android.tar.gz
+# engines/fmodstudioapi*html5.zip
+
+# Run setup (extracts SDKs and copies native libraries)
+dart tool/setup_fmod.dart
+```
+
+**What this does:**
+- Extracts FMOD SDKs
+- Copies iOS libraries to `ios/FMOD/`
+- Copies Android libraries to `example/android/app/src/main/jniLibs/`
+- Copies Web files to `example/web/fmod/`
+
+### 4. Run Example
 
 ```bash
 cd example
-flutter pub get
 flutter run
 ```
 
-See `example/README.md` for details.
+The example app demonstrates:
+- FMOD initialization
+- Loading banks
+- Playing music and sound effects
+- Parameter control
+- Event management
 
-## Getting Started
+---
 
-### Setup FMOD Engine
+## Add to Your Own Project
 
-Before using this plugin, you must install the FMOD Engine native libraries:
+### Step 1: Add Plugin
 
-**Quick Setup (Recommended):**
+```yaml
+# pubspec.yaml
+dependencies:
+  fmod_flutter:
+    git:
+      url: https://github.com/SuperWes/fmod_flutter.git
+  # Or when published: fmod_flutter: ^0.1.0
+```
 
-1. Download FMOD Engine from https://www.fmod.com/download (requires free account)
-2. Extract SDKs to the `engines/` directory (see `engines/README.md` for structure)
-3. Run the setup script:
-   ```bash
-   cd packages/fmod_flutter
-   dart tool/setup_fmod.dart
-   ```
+```bash
+flutter pub get
+```
 
-The script will automatically copy all necessary files to the correct locations for Android, iOS, and Web.
+### Step 2: Set Up FMOD
 
-**Manual Setup:**
+```bash
+# In your project root
+mkdir fmod_sdks
 
-See [FMOD_SETUP.md](FMOD_SETUP.md) for detailed platform-specific instructions.
+# Download FMOD Studio API from fmod.com
+# Place downloaded files in fmod_sdks/
 
-### Platform-Specific Notes
+# Run setup script
+dart run fmod_flutter:setup_fmod
+```
 
-#### Android Setup (Manual)
+The script will:
+- Extract SDK archives
+- Copy native libraries to `android/app/src/main/jniLibs/`
+- Copy iOS libraries to `ios/FMOD/`
+- Copy web files to `web/fmod/`
 
-1. Extract FMOD for Android
-2. Copy `fmod.jar` to `packages/fmod_flutter/android/libs/`
-3. Copy native libraries (`.so` files) to `android/app/src/main/jniLibs/`:
-   ```
-   android/app/src/main/jniLibs/
-   ├── arm64-v8a/
-   │   └── libfmod.so
-   ├── armeabi-v7a/
-   │   └── libfmod.so
-   └── x86/
-       └── libfmod.so
-   ```
+### Step 3: Add Your Audio Banks
 
-### iOS Setup
+#### Option A: Use Sample Banks (Quick Test)
 
-1. Extract FMOD for iOS
-2. Copy `fmod.framework` to `packages/fmod_flutter/ios/Frameworks/`
-3. In your iOS app's Xcode project:
-   - Add `fmod.framework` to "Frameworks, Libraries, and Embedded Content"
-   - Ensure it's set to "Embed & Sign"
+Copy example banks from this plugin:
 
-### Add FMOD Banks to Your App
+```bash
+mkdir -p assets/audio
+cp path/to/fmod_flutter/example/assets/audio/*.bank assets/audio/
+```
 
-1. Export your FMOD Studio banks (Master.bank, Master.strings.bank, etc.)
-2. Place them in your Flutter app's `assets/audio/` directory
-3. Update your `pubspec.yaml`:
+#### Option B: Create Your Own (Recommended)
+
+1. Download FMOD Studio from [fmod.com/download](https://www.fmod.com/download)
+2. Create your audio project
+3. Build banks: `File → Build`
+4. Copy `.bank` files to `assets/audio/`
+
+#### Update pubspec.yaml:
 
 ```yaml
 flutter:
@@ -93,175 +143,318 @@ flutter:
     - assets/audio/SFX.bank
 ```
 
-## Usage
-
-### Initialize FMOD
+### Step 4: Initialize FMOD
 
 ```dart
 import 'package:fmod_flutter/fmod_flutter.dart';
 
-// Create service
-final fmod = FmodService();
-
-// Initialize
-await fmod.initialize();
-
-// Load banks
-await fmod.loadBanks([
-  'assets/audio/Master.bank',
-  'assets/audio/Master.strings.bank',
-  'assets/audio/Music.bank',
-  'assets/audio/SFX.bank',
-]);
-```
-
-### Play Events
-
-```dart
-// Play background music
-await fmod.playEvent('event:/Music/MainTheme');
-
-// Play sound effects
-await fmod.playEvent('event:/SFX/Jump');
-await fmod.playEvent('event:/SFX/Explosion');
-```
-
-### Control Events
-
-```dart
-// Stop an event
-await fmod.stopEvent('event:/Music/MainTheme');
-
-// Set a parameter (e.g., music intensity)
-await fmod.setParameter('event:/Music/MainTheme', 'Intensity', 0.8);
-
-// Pause/resume
-await fmod.setPaused('event:/Music/MainTheme', true);
-await fmod.setPaused('event:/Music/MainTheme', false);
-
-// Set volume (0.0 to 1.0)
-await fmod.setVolume('event:/Music/MainTheme', 0.5);
-```
-
-### Update Loop (Optional)
-
-For the best performance, call `update()` in your game loop:
-
-```dart
-// In your game's update method
-@override
-void update(double dt) {
-  super.update(dt);
-  fmod.update();
-}
-```
-
-### Cleanup
-
-```dart
-@override
-void dispose() {
-  fmod.dispose();
-  super.dispose();
-}
-```
-
-## Complete Example
-
-```dart
-import 'package:flutter/material.dart';
-import 'package:fmod_flutter/fmod_flutter.dart';
-
-class AudioExample extends StatefulWidget {
+class MyApp extends StatefulWidget {
   @override
-  _AudioExampleState createState() => _AudioExampleState();
+  _MyAppState createState() => _MyAppState();
 }
 
-class _AudioExampleState extends State<AudioExample> {
+class _MyAppState extends State<MyApp> {
   final fmod = FmodService();
-  bool _isInitialized = false;
+  bool _isReady = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeFmod();
+    _initFmod();
   }
 
-  Future<void> _initializeFmod() async {
-    await fmod.initialize();
-    await fmod.loadBanks([
+  Future<void> _initFmod() async {
+    // Initialize
+    final initialized = await fmod.initialize();
+    if (!initialized) {
+      print('FMOD initialization failed');
+      return;
+    }
+
+    // Load banks
+    final loaded = await fmod.loadBanks([
       'assets/audio/Master.bank',
       'assets/audio/Master.strings.bank',
       'assets/audio/Music.bank',
+      'assets/audio/SFX.bank',
     ]);
-    setState(() {
-      _isInitialized = true;
-    });
+
+    setState(() => _isReady = initialized && loaded);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('FMOD Example')),
-      body: _isInitialized
-          ? Column(
-              children: [
-                ElevatedButton(
-                  onPressed: () => fmod.playEvent('event:/Music/MainTheme'),
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: Text('FMOD Flutter')),
+        body: Center(
+          child: _isReady
+              ? ElevatedButton(
+                  onPressed: () => fmod.playEvent('event:/main_music'),
                   child: Text('Play Music'),
-                ),
-                ElevatedButton(
-                  onPressed: () => fmod.playEvent('event:/SFX/Click'),
-                  child: Text('Play SFX'),
-                ),
-                ElevatedButton(
-                  onPressed: () => fmod.stopEvent('event:/Music/MainTheme'),
-                  child: Text('Stop Music'),
-                ),
-              ],
-            )
-          : Center(child: CircularProgressIndicator()),
+                )
+              : CircularProgressIndicator(),
+        ),
+      ),
     );
-  }
-
-  @override
-  void dispose() {
-    fmod.dispose();
-    super.dispose();
   }
 }
 ```
 
-## License
+### Step 5: Play Audio
 
-This plugin itself is MIT licensed. FMOD Studio is a commercial product and requires a license from Firelight Technologies. See https://www.fmod.com/licensing for details.
+```dart
+// Play events
+await fmod.playEvent('event:/main_music');
+await fmod.playEvent('event:/gun_shoot');
 
-## FMOD Licensing
+// Stop events
+await fmod.stopEvent('event:/main_music');
 
-**Important**: This plugin is just a Flutter wrapper. You must obtain appropriate FMOD licenses:
+// Control parameters
+await fmod.setParameter('event:/main_music', 'Intensity', 0.8);
 
-- **Indie License**: Free for small developers (revenue < $200k/year)
-- **Commercial License**: Required for larger projects
+// Pause/resume
+await fmod.setPaused('event:/main_music', true);
+await fmod.setPaused('event:/main_music', false);
 
-Visit https://www.fmod.com/licensing for full details.
+// Volume control (0.0 to 1.0)
+await fmod.setVolume('event:/main_music', 0.5);
+```
+
+---
+
+## Platform Setup Details
+
+### iOS
+
+The setup script automatically configures iOS. The plugin's `podspec` references `ios/FMOD/` in your project.
+
+**First build**: May take longer as CocoaPods processes FMOD libraries.
+
+**Troubleshooting**:
+```bash
+cd ios
+pod deintegrate
+pod install
+cd ..
+flutter clean
+flutter run
+```
+
+### Android
+
+Native libraries (`.so` files) are automatically copied to `android/app/src/main/jniLibs/` with support for:
+- `arm64-v8a` (modern 64-bit devices)
+- `armeabi-v7a` (older 32-bit devices)  
+- `x86` & `x86_64` (emulators)
+
+**Troubleshooting**: Rerun `dart run fmod_flutter:setup_fmod` to restore libraries.
+
+### Web (Experimental)
+
+Add to `web/index.html` in `<head>`:
+
+```html
+<script src="fmod/fmodstudio.js" defer></script>
+```
+
+**Note**: Web support is experimental. Production builds may require additional configuration.
+
+---
+
+## .gitignore Configuration
+
+### For Private/Closed-Source Projects
+
+**You can commit FMOD files!** For your private game repository, it's often easier to commit:
+- ✅ `fmod_sdks/` (or the extracted files)
+- ✅ `android/app/src/main/jniLibs/libfmod*.so`
+- ✅ `ios/FMOD/`
+- ✅ `web/fmod/`
+
+Your team members just clone and build - no setup needed!
+
+### For Open Source / Public Repositories
+
+**Don't commit FMOD files.** Add to your `.gitignore`:
+
+```gitignore
+# FMOD SDK files (proprietary - can't redistribute publicly)
+fmod_sdks/
+android/app/src/main/jniLibs/libfmod*.so
+ios/FMOD/
+web/fmod/
+```
+
+Each user downloads FMOD with their own account and runs `dart run fmod_flutter:setup_fmod`.
+
+**Why?** FMOD's license prohibits public redistribution. Anyone using your open source project must download FMOD themselves.
+
+---
+
+## API Reference
+
+### FmodService
+
+```dart
+final fmod = FmodService();
+
+// Initialize FMOD engine
+Future<bool> initialize()
+
+// Load bank files
+Future<bool> loadBanks(List<String> paths)
+
+// Play an event
+Future<void> playEvent(String eventPath)
+
+// Stop an event
+Future<void> stopEvent(String eventPath)
+
+// Set event parameter
+Future<void> setParameter(String eventPath, String paramName, double value)
+
+// Pause/resume event
+Future<void> setPaused(String eventPath, bool paused)
+
+// Set event volume (0.0 to 1.0)
+Future<void> setVolume(String eventPath, double volume)
+
+// Release resources (call on app shutdown)
+Future<void> release()
+```
+
+---
 
 ## Troubleshooting
 
-### Android: "UnsatisfiedLinkError: dlopen failed"
+### "FMOD not initialized" or "Banks not loaded"
 
-Make sure you've placed the FMOD `.so` files in the correct `jniLibs` directories for all architectures you're targeting.
+**Solution**: 
+```bash
+# Rerun setup
+dart run fmod_flutter:setup_fmod
 
-### iOS: "dyld: Library not loaded"
+# Clean and rebuild
+flutter clean
+flutter pub get
+flutter run
+```
 
-Ensure `fmod.framework` is properly embedded in your iOS app and set to "Embed & Sign" in Xcode.
+### iOS: CocoaPods errors
 
-### Events not playing
+**Solution**:
+```bash
+cd ios
+pod deintegrate
+rm Podfile.lock
+pod install
+cd ..
+flutter clean
+flutter run
+```
 
-- Verify your event paths match exactly what's in FMOD Studio (case-sensitive)
-- Make sure you've loaded all required banks (Master.bank and Master.strings.bank are usually required)
-- Check console logs for FMOD error messages
+### Android: "Library not found"
+
+**Solution**: Verify libraries exist:
+```bash
+ls -la android/app/src/main/jniLibs/arm64-v8a/
+# Should show libfmod.so and libfmodstudio.so
+```
+
+If missing, rerun: `dart run fmod_flutter:setup_fmod`
+
+### "Event not found"
+
+**Solution**: 
+- Verify event paths match FMOD Studio (case-sensitive!)
+- Check console logs for available events
+- Ensure banks are loaded before playing events
+
+### Web: "FMOD not loaded"
+
+**Solution**:
+- Verify `web/fmod/fmodstudio.js` exists
+- Check `web/index.html` includes script tag
+- Try production build: `flutter build web`
+
+---
+
+## Team Workflow
+
+### For Private Projects (Recommended)
+
+**Commit FMOD files to your repo:**
+
+Team setup:
+1. One person runs `dart run fmod_flutter:setup_fmod`
+2. Commit the generated `ios/FMOD/`, `android/.../jniLibs/`, etc.
+3. Team members just clone and build - done!
+
+### For Open Source Projects
+
+**Each team member downloads FMOD:**
+
+1. Clone your project
+2. Run `flutter pub get`
+3. Create `fmod_sdks/` directory
+4. Download FMOD SDKs from fmod.com (with their account)
+5. Run `dart run fmod_flutter:setup_fmod`
+6. Build and run!
+
+(Don't commit `fmod_sdks/` or FMOD native files - see .gitignore section)
+
+---
+
+## FMOD Resources
+
+- **Download FMOD**: [fmod.com/download](https://www.fmod.com/download)
+- **FMOD Documentation**: [fmod.com/docs](https://www.fmod.com/docs)
+- **FMOD Studio**: [Video Tutorials](https://www.fmod.com/learn)
+- **Licensing**: [fmod.com/licensing](https://www.fmod.com/licensing)
+  - Free for indie (< $500k revenue/year)
+  - Commercial licenses available
+
+---
+
+## License
+
+**Plugin**: MIT License
+
+**FMOD Engine**: Proprietary license from Firelight Technologies
+- Free for indie developers
+- Requires account at fmod.com
+- See [fmod.com/licensing](https://www.fmod.com/licensing)
+
+---
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions welcome! Please open an issue or PR on [GitHub](https://github.com/SuperWes/fmod_flutter).
 
+---
+
+## Example App
+
+See `example/` directory for a complete demo with:
+- Initialization flow
+- Bank loading
+- Music playback
+- Sound effects
+- Parameter control
+- UI feedback
+
+Run it: `cd example && flutter run`
+
+---
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/SuperWes/fmod_flutter/issues)
+- **Questions**: Open a discussion on GitHub
+- **FMOD Help**: [FMOD Forums](https://qa.fmod.com/)
+
+---
+
+Made with 🎵 for Flutter game developers

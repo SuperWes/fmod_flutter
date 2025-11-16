@@ -1,137 +1,74 @@
 # FMOD Flutter Example App
 
-This example app demonstrates how to use the `fmod_flutter` plugin with your FMOD banks.
+This example demonstrates FMOD audio integration in Flutter.
 
-## Features
+## Quick Run
 
-- ✅ FMOD system initialization
-- ✅ Load multiple FMOD banks
-- ✅ Play music events
-- ✅ Play sound effects
-- ✅ Event status tracking
-- ✅ Stop events
-- ✅ User-friendly UI with status feedback
-
-## Quick Start
-
-### 1. Setup FMOD Engine
-
-Before running this example, you need to install FMOD Engine files. See:
-
-```
-../FMOD_SETUP.md
-```
-
-### 2. Update Event Paths
-
-Open `lib/main.dart` and update the event paths to match your FMOD Studio project:
-
-```dart
-final List<String> _musicEvents = [
-  'event:/Music/MainTheme',      // Update these to your actual events
-  'event:/Music/BattleTheme',
-  'event:/Music/AmbientTheme',
-];
-
-final List<String> _sfxEvents = [
-  'event:/SFX/Jump',              // Update these to your actual events
-  'event:/SFX/Click',
-  'event:/SFX/Explosion',
-];
-```
-
-### 3. Run the Example
+### 1. Set Up FMOD (one time)
 
 ```bash
-cd packages/fmod_flutter/example
-flutter pub get
+# From plugin root (one directory up)
+cd ..
+
+# Create engines directory
+mkdir engines
+
+# Download FMOD Studio API from fmod.com
+# Place downloaded files in engines/
+
+# Run setup script
+dart tool/setup_fmod.dart
+```
+
+### 2. Run Example
+
+```bash
+# Back to example directory
+cd example
+
+# Run on your device
 flutter run
 ```
 
-## What's Included
+## What It Demonstrates
 
-### FMOD Banks
+- **Initialization**: Setting up FMOD engine
+- **Bank Loading**: Loading audio banks
+- **Music Playback**: Playing background music
+- **Sound Effects**: Playing game sound effects
+- **UI Integration**: Flutter widgets with FMOD
+- **Error Handling**: Showing setup instructions when FMOD not configured
 
-The example includes your actual FMOD banks:
-- `Master.bank`
-- `Master.strings.bank`
-- `Music.bank`
-- `SFX.bank`
+## Included Banks
 
-These are sample FMOD banks for demonstration purposes.
+The example includes sample FMOD banks with:
+- **Music**: `event:/main_music`
+- **Sound Effects**: 
+  - `event:/gun_shoot`
+  - `event:/gun_reload`
+  - `event:/player_hurt`
+  - `event:/player_death`
+  - `event:/demon_growl`
+  - And more...
 
-### Example Code
+## Using Your Own Audio
 
-The `main.dart` demonstrates:
-
-1. **Initialization**
-   ```dart
-   final fmod = FmodService();
-   await fmod.initialize();
-   ```
-
-2. **Loading Banks**
-   ```dart
-   await fmod.loadBanks([
-     'assets/audio/Master.bank',
-     'assets/audio/Master.strings.bank',
-     'assets/audio/Music.bank',
-     'assets/audio/SFX.bank',
-   ]);
-   ```
-
-3. **Playing Events**
-   ```dart
-   await fmod.playEvent('event:/Music/MainTheme');
-   ```
-
-4. **Stopping Events**
-   ```dart
-   await fmod.stopEvent('event:/Music/MainTheme');
-   ```
-
-## Finding Your Event Paths
-
-To find the correct event paths:
-
-1. Open your FMOD Studio project
-2. Look at the Events Browser panel
-3. Event paths follow: `event:/Folder/EventName`
-
-For example:
-- `event:/Music/MainTheme`
-- `event:/SFX/TrapHit`
+1. Create your project in FMOD Studio
+2. Build your banks
+3. Replace files in `assets/audio/`
+4. Update event paths in `lib/main.dart`
 
 ## Troubleshooting
 
-### "FMOD not initialized"
+**"FMOD Not Ready" error**:
+- Run setup script from plugin root: `dart tool/setup_fmod.dart`
+- Ensure FMOD SDKs are in `../engines/`
 
-Make sure you've installed FMOD Engine files. See `../FMOD_SETUP.md`.
-
-### "Event not found"
-
-Your event paths in `main.dart` don't match your FMOD project. Update them to match your actual events.
-
-### No Sound
-
-- Test on a real device (not simulator)
+**No sound on device**:
 - Check device volume
-- Look for errors in console logs
+- Verify banks are loaded (see console logs)
+- Ensure event paths are correct
 
-## Testing Tips
+---
 
-1. **Console Logs**: Check the console for FMOD debug messages
-2. **Real Devices**: FMOD works best on physical devices
-3. **Event Names**: Make sure event paths exactly match your FMOD Studio project (case-sensitive)
-4. **Banks**: All required banks must be loaded (Master.bank and Master.strings.bank are essential)
-
-## Next Steps
-
-Once you have this working:
-
-1. Experiment with different events
-2. Try adding parameter controls
-3. Test volume and pause/resume
-4. Integrate into your actual game
-
-Refer to the main plugin documentation in `../README.md` for more advanced features!
+For full documentation, see the main [README.md](../README.md)

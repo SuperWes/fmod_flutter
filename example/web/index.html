@@ -29,10 +29,27 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>example</title>
+  <title>FMOD Flutter Example</title>
   <link rel="manifest" href="manifest.json">
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  </style>
+  
+  <!-- Load FMOD before Flutter -->
+  <script src="fmod/fmodstudio.js" defer></script>
 </head>
 <body>
+  <script>
+    console.log('[FMOD] Checking for FMOD availability...');
+    console.log('[FMOD] typeof FMOD:', typeof FMOD);
+    console.log('[FMOD] window.FMOD:', window.FMOD);
+  </script>
+  
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
