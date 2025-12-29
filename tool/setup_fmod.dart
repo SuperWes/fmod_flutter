@@ -274,7 +274,7 @@ Future<bool> setupAndroid(Directory packageRoot, Directory enginesDir) async {
   final coreIncDir = Directory('${sdkDir.path}/api/core/inc');
   if (await coreIncDir.exists()) {
     await for (final entity in coreIncDir.list()) {
-      if (entity is File && entity.path.endsWith('.h') || entity.path.endsWith('.hpp')) {
+      if (entity is File && (entity.path.endsWith('.h') || entity.path.endsWith('.hpp'))) {
         final fileName = entity.path.split('/').last;
         await entity.copy('${includeDir.path}/$fileName');
         headersCopied++;

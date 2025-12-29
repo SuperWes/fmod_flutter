@@ -83,6 +83,7 @@ engines/html5/fmodstudio*/
 # FMOD native libraries (plugin)
 android/libs/*.aar
 android/libs/*.jar
+android/libs/include/
 android/src/main/jniLibs/
 
 # FMOD native libraries (example)

@@ -43,7 +43,12 @@ FMOD Engine files are proprietary and not included in this repo. Each developer 
 
 ### 3. Run Setup Script
 
+**Important**: Run these commands from the plugin root (`fmod_flutter/`), NOT from the example directory.
+
 ```bash
+# Make sure you're in the plugin root directory
+# pwd should show: .../fmod_flutter
+
 # Create engines directory
 mkdir engines
 
@@ -63,6 +68,8 @@ dart tool/setup_fmod.dart
 - Copies Web files to `example/web/fmod/`
 
 ### 4. Run Example
+
+**Now** you can move to the example directory and run the app:
 
 ```bash
 cd example
