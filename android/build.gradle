@@ -1,4 +1,4 @@
-group 'com.gravesweeper.fmod_flutter'
+group 'com.midnightlaunchgames.fmod_flutter'
 version '1.0'
 
 buildscript {
@@ -24,6 +24,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
+    namespace 'com.midnightlaunchgames.fmod_flutter'
     compileSdkVersion 34
 
     compileOptions {
