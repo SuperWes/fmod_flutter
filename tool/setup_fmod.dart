@@ -238,7 +238,7 @@ Future<bool> setupAndroid(Directory packageRoot, Directory enginesDir) async {
   final sdkDir = sdkDirs.first as Directory;
   print('   Found SDK: ${sdkDir.path.split('/').last}');
 
-  // Copy .jar files
+  // Copy .jar files to plugin's libs directory
   final libsDestDir = Directory('${packageRoot.path}/android/libs');
   await libsDestDir.create(recursive: true);
 
@@ -249,48 +249,142 @@ Future<bool> setupAndroid(Directory packageRoot, Directory enginesDir) async {
   if (await coreJar.exists()) {
     await coreJar.copy('${libsDestDir.path}/fmod.jar');
     copied++;
-    print('   ✓ Copied fmod.jar');
+    print('   ✓ Copied fmod.jar to plugin');
   }
 
-  if (copied > 0) {
-    print('   ✓ Copied $copied .jar file(s) to android/libs/');
-  } else {
+  if (copied == 0) {
     print('   ⚠️  No .jar files found');
     return false;
   }
+  
+  // Copy header files to plugin's libs/include directory
+  print('   Copying header files...');
+  final includeDir = Directory('${libsDestDir.path}/include');
+  await includeDir.create(recursive: true);
+  
+  var headersCopied = 0;
+  
+  // Copy core headers
+  final coreIncDir = Directory('${sdkDir.path}/api/core/inc');
+  if (await coreIncDir.exists()) {
+    await for (final entity in coreIncDir.list()) {
+      if (entity is File && entity.path.endsWith('.h') || entity.path.endsWith('.hpp')) {
+        final fileName = entity.path.split('/').last;
+        await entity.copy('${includeDir.path}/$fileName');
+        headersCopied++;
+      }
+    }
+  }
+  
+  // Copy studio headers
+  final studioIncDir = Directory('${sdkDir.path}/api/studio/inc');
+  if (await studioIncDir.exists()) {
+    await for (final entity in studioIncDir.list()) {
+      if (entity is File && (entity.path.endsWith('.h') || entity.path.endsWith('.hpp'))) {
+        final fileName = entity.path.split('/').last;
+        await entity.copy('${includeDir.path}/$fileName');
+        headersCopied++;
+      }
+    }
+  }
+  
+  print('   ✓ Copied $headersCopied header files to android/libs/include/');
 
-  // Copy native .so libraries to example app
-  print('   Copying native libraries to example app...');
-  final exampleJniLibsDir = Directory('${packageRoot.path}/example/android/app/src/main/jniLibs');
+  // Copy native .so libraries to plugin's jniLibs directory (for CMake)
+  print('   Copying native libraries to plugin...');
+  final pluginJniLibsDir = Directory('${packageRoot.path}/android/src/main/jniLibs');
   
   final architectures = ['arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'];
-  var soFilesCopied = 0;
+  var pluginSoFiles = 0;
   
   for (final arch in architectures) {
-    final archDestDir = Directory('${exampleJniLibsDir.path}/$arch');
+    final archDestDir = Directory('${pluginJniLibsDir.path}/$arch');
     await archDestDir.create(recursive: true);
     
     // Copy core library
     final coreLib = File('${sdkDir.path}/api/core/lib/$arch/libfmod.so');
     if (await coreLib.exists()) {
       await coreLib.copy('${archDestDir.path}/libfmod.so');
-      soFilesCopied++;
+      pluginSoFiles++;
     }
     
     // Copy studio library
     final studioLib = File('${sdkDir.path}/api/studio/lib/$arch/libfmodstudio.so');
     if (await studioLib.exists()) {
       await studioLib.copy('${archDestDir.path}/libfmodstudio.so');
-      soFilesCopied++;
+      pluginSoFiles++;
     }
   }
   
-  if (soFilesCopied > 0) {
-    print('   ✓ Copied $soFilesCopied native library file(s) to example/android/app/src/main/jniLibs/');
+  if (pluginSoFiles > 0) {
+    print('   ✓ Copied $pluginSoFiles native library file(s) to plugin');
   } else {
     print('   ⚠️  No native libraries found');
+    return false;
+  }
+  
+  // Also copy to example app if it exists
+  final exampleJniLibsDir = Directory('${packageRoot.path}/example/android/app/src/main/jniLibs');
+  if (await Directory('${packageRoot.path}/example').exists()) {
+    print('   Copying native libraries to example app...');
+    var exampleSoFiles = 0;
+    
+    for (final arch in architectures) {
+      final archDestDir = Directory('${exampleJniLibsDir.path}/$arch');
+      await archDestDir.create(recursive: true);
+      
+      // Copy core library
+      final coreLib = File('${sdkDir.path}/api/core/lib/$arch/libfmod.so');
+      if (await coreLib.exists()) {
+        await coreLib.copy('${archDestDir.path}/libfmod.so');
+        exampleSoFiles++;
+      }
+      
+      // Copy studio library
+      final studioLib = File('${sdkDir.path}/api/studio/lib/$arch/libfmodstudio.so');
+      if (await studioLib.exists()) {
+        await studioLib.copy('${archDestDir.path}/libfmodstudio.so');
+        exampleSoFiles++;
+      }
+    }
+    
+    if (exampleSoFiles > 0) {
+      print('   ✓ Copied $exampleSoFiles native library file(s) to example app');
+    }
+  }
+  
+  // If running from user's project, also copy to their app
+  final userAppJniLibsDir = Directory('${packageRoot.path}/android/app/src/main/jniLibs');
+  if (await Directory('${packageRoot.path}/android/app').exists() && 
+      !await Directory('${packageRoot.path}/example').exists()) {
+    print('   Copying native libraries to your app...');
+    var userSoFiles = 0;
+    
+    for (final arch in architectures) {
+      final archDestDir = Directory('${userAppJniLibsDir.path}/$arch');
+      await archDestDir.create(recursive: true);
+      
+      // Copy core library
+      final coreLib = File('${sdkDir.path}/api/core/lib/$arch/libfmod.so');
+      if (await coreLib.exists()) {
+        await coreLib.copy('${archDestDir.path}/libfmod.so');
+        userSoFiles++;
+      }
+      
+      // Copy studio library
+      final studioLib = File('${sdkDir.path}/api/studio/lib/$arch/libfmodstudio.so');
+      if (await studioLib.exists()) {
+        await studioLib.copy('${archDestDir.path}/libfmodstudio.so');
+        userSoFiles++;
+      }
+    }
+    
+    if (userSoFiles > 0) {
+      print('   ✓ Copied $userSoFiles native library file(s) to your app');
+    }
   }
 
+  print('   ✓ Android FMOD libraries ready');
   return true;
 }
 

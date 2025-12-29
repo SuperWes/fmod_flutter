@@ -77,12 +77,21 @@ engines/*.dmg
 engines/android/fmodstudio*/
 engines/ios/fmodstudioapi*/
 engines/html5/fmodstudio*/
+
+# FMOD native libraries (plugin)
 android/libs/*.aar
 android/libs/*.jar
+android/src/main/jniLibs/
+
+# FMOD native libraries (example)
 example/android/app/src/main/jniLibs/
+
+# FMOD iOS libraries
 ios/FMOD/
 ios/Frameworks/*.framework
 ios/Frameworks/*.xcframework
+
+# FMOD Web files
 web/assets/fmod/*.js
 web/assets/fmod/*.wasm
 example/web/fmod/

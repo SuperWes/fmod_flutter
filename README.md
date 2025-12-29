@@ -244,10 +244,14 @@ flutter run
 
 ### Android
 
+✅ **Full JNI integration** - uses native C++ to call FMOD's C++ API via JNI (Java Native Interface).
+
 Native libraries (`.so` files) are automatically copied to `android/app/src/main/jniLibs/` with support for:
 - `arm64-v8a` (modern 64-bit devices)
 - `armeabi-v7a` (older 32-bit devices)  
 - `x86` & `x86_64` (emulators)
+
+The plugin uses CMake to build the native JNI wrapper that bridges Kotlin to FMOD's C++ API.
 
 **Troubleshooting**: Rerun `dart run fmod_flutter:setup_fmod` to restore libraries.
 

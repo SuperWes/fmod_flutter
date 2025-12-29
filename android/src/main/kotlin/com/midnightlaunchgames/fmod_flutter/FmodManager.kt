@@ -1,47 +1,108 @@
 package com.midnightlaunchgames.fmod_flutter
 
 import android.content.Context
+import android.content.res.AssetManager
 import android.util.Log
+import android.os.Handler
+import android.os.Looper
+import java.io.IOException
 
 /**
- * Stub implementation of FMOD Manager for Android.
+ * FMOD Manager for Android with JNI integration.
  * 
- * NOTE: FMOD Studio on Android requires JNI bindings to the C++ API.
- * This is a stub that allows the app to build and run without audio.
- * Real FMOD support will require implementing JNI wrappers for:
- * - FMOD_Studio_System_Create
- * - FMOD_Studio_System_Initialize
- * - FMOD_Studio_System_LoadBankMemory
- * - FMOD_Studio_System_GetEvent
- * - FMOD_Studio_EventDescription_CreateInstance
- * - etc.
+ * Provides Kotlin API for FMOD Studio, backed by native C++ implementation.
  */
 class FmodManager(private val context: Context) {
     
     companion object {
         private const val TAG = "FmodManager"
+        
+        // Load native library
+        init {
+            System.loadLibrary("fmod")
+            System.loadLibrary("fmodstudio")
+            System.loadLibrary("fmod_flutter")
+        }
     }
+    
+    private val handler = Handler(Looper.getMainLooper())
+    private val updateRunnable = object : Runnable {
+        override fun run() {
+            nativeUpdate()
+            handler.postDelayed(this, 16) // ~60 FPS
+        }
+    }
+    
+    // Native methods
+    private external fun nativeInitialize(): Boolean
+    private external fun nativeLoadBank(bankData: ByteArray): Boolean
+    private external fun nativePlayEvent(eventPath: String): Boolean
+    private external fun nativeStopEvent(eventPath: String): Boolean
+    private external fun nativeSetParameter(eventPath: String, paramName: String, value: Float): Boolean
+    private external fun nativeSetPaused(eventPath: String, paused: Boolean): Boolean
+    private external fun nativeSetVolume(eventPath: String, volume: Float): Boolean
+    private external fun nativeUpdate()
+    private external fun nativeRelease()
+    private external fun nativeLogAvailableEvents()
     
     /**
      * Initialize the FMOD Studio system.
-     * @return true (stub always succeeds)
+     * @return true if successful
      */
     fun initialize(): Boolean {
-        Log.d(TAG, "FMOD initialize() called - STUB IMPLEMENTATION (no audio on Android)")
-        return true
+        Log.d(TAG, "Initializing FMOD...")
+        
+        val success = nativeInitialize()
+        
+        if (success) {
+            Log.d(TAG, "FMOD initialized successfully")
+            // Start update loop
+            handler.post(updateRunnable)
+        } else {
+            Log.e(TAG, "Failed to initialize FMOD")
+        }
+        
+        return success
     }
     
     /**
      * Load FMOD banks from asset paths.
      * @param bankPaths List of asset paths to FMOD bank files
-     * @return true (stub always succeeds)
+     * @return true if all banks loaded successfully
      */
     fun loadBanks(bankPaths: List<String>): Boolean {
-        Log.d(TAG, "FMOD loadBanks() called with ${bankPaths.size} banks - STUB")
-        for (path in bankPaths) {
-            Log.d(TAG, "  Would load bank: $path")
+        Log.d(TAG, "Loading ${bankPaths.size} banks...")
+        
+        var allLoaded = true
+        val assetManager = context.assets
+        
+        for (bankPath in bankPaths) {
+            try {
+                // Read bank file from assets
+                val inputStream = assetManager.open(bankPath)
+                val bankData = inputStream.readBytes()
+                inputStream.close()
+                
+                Log.d(TAG, "Loading bank: $bankPath (${bankData.size} bytes)")
+                
+                if (nativeLoadBank(bankData)) {
+                    Log.d(TAG, "✓ Loaded: $bankPath")
+                } else {
+                    Log.e(TAG, "✗ Failed to load: $bankPath")
+                    allLoaded = false
+                }
+            } catch (e: IOException) {
+                Log.e(TAG, "Failed to read bank file: $bankPath", e)
+                allLoaded = false
+            }
         }
-        return true
+        
+        if (allLoaded) {
+            // Log available events for debugging
+            nativeLogAvailableEvents()
+        }
+        
+        return allLoaded
     }
     
     /**
@@ -49,7 +110,10 @@ class FmodManager(private val context: Context) {
      * @param path Event path (e.g., "event:/Music/MainTheme")
      */
     fun playEvent(path: String) {
-        Log.d(TAG, "FMOD playEvent($path) - STUB (no audio)")
+        Log.d(TAG, "Playing event: $path")
+        if (!nativePlayEvent(path)) {
+            Log.e(TAG, "Failed to play event: $path")
+        }
     }
     
     /**
@@ -57,7 +121,10 @@ class FmodManager(private val context: Context) {
      * @param path Event path
      */
     fun stopEvent(path: String) {
-        Log.d(TAG, "FMOD stopEvent($path) - STUB")
+        Log.d(TAG, "Stopping event: $path")
+        if (!nativeStopEvent(path)) {
+            Log.e(TAG, "Failed to stop event: $path")
+        }
     }
     
     /**
@@ -67,7 +134,9 @@ class FmodManager(private val context: Context) {
      * @param value Parameter value
      */
     fun setParameter(path: String, paramName: String, value: Float) {
-        Log.d(TAG, "FMOD setParameter($path, $paramName, $value) - STUB")
+        if (!nativeSetParameter(path, paramName, value)) {
+            Log.e(TAG, "Failed to set parameter $paramName for event: $path")
+        }
     }
     
     /**
@@ -76,7 +145,9 @@ class FmodManager(private val context: Context) {
      * @param paused Whether to pause (true) or resume (false)
      */
     fun setPaused(path: String, paused: Boolean) {
-        Log.d(TAG, "FMOD setPaused($path, $paused) - STUB")
+        if (!nativeSetPaused(path, paused)) {
+            Log.e(TAG, "Failed to set paused state for event: $path")
+        }
     }
     
     /**
@@ -85,15 +156,18 @@ class FmodManager(private val context: Context) {
      * @param volume Volume (0.0 to 1.0)
      */
     fun setVolume(path: String, volume: Float) {
-        Log.d(TAG, "FMOD setVolume($path, $volume) - STUB")
+        if (!nativeSetVolume(path, volume)) {
+            Log.e(TAG, "Failed to set volume for event: $path")
+        }
     }
     
     /**
      * Update the FMOD system.
      * Should be called regularly (e.g., once per frame).
+     * This is called automatically by the update loop.
      */
     fun update() {
-        // Stub - no-op
+        nativeUpdate()
     }
     
     /**
@@ -101,6 +175,8 @@ class FmodManager(private val context: Context) {
      * Should be called when done using FMOD.
      */
     fun release() {
-        Log.d(TAG, "FMOD release() - STUB")
+        Log.d(TAG, "Releasing FMOD...")
+        handler.removeCallbacks(updateRunnable)
+        nativeRelease()
     }
 }
