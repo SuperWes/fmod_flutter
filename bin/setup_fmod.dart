@@ -7,7 +7,7 @@
 ///   dart run fmod_flutter:setup_fmod
 ///
 /// This will:
-/// 1. Look for FMOD SDK archives in fmod_sdks/
+/// 1. Look for FMOD SDK archives in engines/
 /// 2. Extract them if needed
 /// 3. Copy native libraries to your project's android/, ios/, and web/ directories
 
@@ -18,10 +18,10 @@ void main() async {
 
   // This script runs from the user's project root
   final projectRoot = Directory.current;
-  final fmodSdksDir = Directory('${projectRoot.path}/fmod_sdks');
+  final enginesDir = Directory('${projectRoot.path}/engines');
 
   print('📁 Project root: ${projectRoot.path}');
-  print('📁 Looking for FMOD SDKs in: ${fmodSdksDir.path}\n');
+  print('📁 Looking for FMOD SDKs in: ${enginesDir.path}\n');
 
   // Check if project has pubspec.yaml (sanity check)
   final pubspecFile = File('${projectRoot.path}/pubspec.yaml');
@@ -31,15 +31,15 @@ void main() async {
     exit(1);
   }
 
-  // Check if fmod_sdks directory exists
-  if (!await fmodSdksDir.exists()) {
-    print('❌ fmod_sdks/ directory not found!');
+  // Check if engines directory exists
+  if (!await enginesDir.exists()) {
+    print('❌ engines/ directory not found!');
     print('\n📖 Setup Instructions:\n');
-    print('1. Create a directory named "fmod_sdks" in your project root:');
-    print('   mkdir fmod_sdks\n');
+    print('1. Create a directory named "engines" in your project root:');
+    print('   mkdir engines\n');
     print('2. Download FMOD Engine SDKs from https://www.fmod.com/download');
     print('   (Requires free account)\n');
-    print('3. Place the downloaded files in fmod_sdks/:');
+    print('3. Place the downloaded files in engines/:');
     print('   - fmodstudioapi*android.tar.gz');
     print('   - fmodstudioapi*ios-installer.dmg');
     print('   - fmodstudioapi*html5.zip\n');
@@ -48,18 +48,18 @@ void main() async {
   }
 
   // Extract archives if needed
-  await extractArchives(fmodSdksDir);
+  await extractArchives(enginesDir);
 
   var success = true;
 
   // Setup Android
-  success = await setupAndroid(projectRoot, fmodSdksDir) && success;
+  success = await setupAndroid(projectRoot, enginesDir) && success;
   
   // Setup iOS
-  success = await setupIOS(projectRoot, fmodSdksDir) && success;
+  success = await setupIOS(projectRoot, enginesDir) && success;
   
   // Setup Web
-  success = await setupWeb(projectRoot, fmodSdksDir) && success;
+  success = await setupWeb(projectRoot, enginesDir) && success;
 
   if (success) {
     print('\n✅ FMOD setup complete!');
@@ -75,10 +75,10 @@ void main() async {
   }
 }
 
-Future<void> extractArchives(Directory fmodSdksDir) async {
+Future<void> extractArchives(Directory enginesDir) async {
   print('📦 Checking for FMOD SDK archives...\n');
 
-  final entities = await fmodSdksDir.list().toList();
+  final entities = await enginesDir.list().toList();
   var extracted = false;
 
   for (final entity in entities) {
@@ -90,7 +90,7 @@ Future<void> extractArchives(Directory fmodSdksDir) async {
     // Android: .tar.gz
     if (fileName.endsWith('.tar.gz') && fileName.contains('android')) {
       print('   Found Android SDK: $fileName');
-      final destDir = Directory('${fmodSdksDir.path}/android');
+      final destDir = Directory('${enginesDir.path}/android');
       await destDir.create(recursive: true);
       
       final result = await Process.run(
@@ -99,7 +99,7 @@ Future<void> extractArchives(Directory fmodSdksDir) async {
       );
       
       if (result.exitCode == 0) {
-        print('   ✓ Extracted to fmod_sdks/android/');
+        print('   ✓ Extracted to engines/android/');
         extracted = true;
       } else {
         print('   ⚠️  Failed to extract: ${result.stderr}');
@@ -109,7 +109,7 @@ Future<void> extractArchives(Directory fmodSdksDir) async {
     // iOS: .dmg
     else if (fileName.endsWith('.dmg') && fileName.contains('ios')) {
       print('   Found iOS SDK: $fileName');
-      final destDir = Directory('${fmodSdksDir.path}/ios');
+      final destDir = Directory('${enginesDir.path}/ios');
       await destDir.create(recursive: true);
       
       print('   Mounting DMG...');
@@ -155,7 +155,7 @@ Future<void> extractArchives(Directory fmodSdksDir) async {
             final targetDir = Directory('${destDir.path}/$sdkName');
             print('   Copying SDK...');
             await _copyDirectory(sdkDir, targetDir);
-            print('   ✓ Extracted to fmod_sdks/ios/$sdkName');
+            print('   ✓ Extracted to engines/ios/$sdkName');
             extracted = true;
           }
           
@@ -167,7 +167,7 @@ Future<void> extractArchives(Directory fmodSdksDir) async {
     // Web/HTML5: .zip
     else if (fileName.endsWith('.zip') && fileName.contains('html5')) {
       print('   Found HTML5 SDK: $fileName');
-      final destDir = Directory('${fmodSdksDir.path}/html5');
+      final destDir = Directory('${enginesDir.path}/html5');
       await destDir.create(recursive: true);
       
       final result = await Process.run(
@@ -176,7 +176,7 @@ Future<void> extractArchives(Directory fmodSdksDir) async {
       );
       
       if (result.exitCode == 0) {
-        print('   ✓ Extracted to fmod_sdks/html5/');
+        print('   ✓ Extracted to engines/html5/');
         extracted = true;
       } else {
         print('   ⚠️  Failed to extract: ${result.stderr}');
@@ -191,12 +191,12 @@ Future<void> extractArchives(Directory fmodSdksDir) async {
   }
 }
 
-Future<bool> setupAndroid(Directory projectRoot, Directory fmodSdksDir) async {
+Future<bool> setupAndroid(Directory projectRoot, Directory enginesDir) async {
   print('🤖 Setting up Android...');
 
-  final androidSdkDir = Directory('${fmodSdksDir.path}/android');
+  final androidSdkDir = Directory('${enginesDir.path}/android');
   if (!await androidSdkDir.exists()) {
-    print('   ⚠️  android/ not found in fmod_sdks/');
+    print('   ⚠️  android/ not found in engines/');
     print('   Skipping Android setup.');
     return false;
   }
@@ -208,7 +208,7 @@ Future<bool> setupAndroid(Directory projectRoot, Directory fmodSdksDir) async {
       .toList();
 
   if (sdkDirs.isEmpty) {
-    print('   ⚠️  No FMOD SDK found in fmod_sdks/android/');
+    print('   ⚠️  No FMOD SDK found in engines/android/');
     return false;
   }
 
@@ -249,12 +249,12 @@ Future<bool> setupAndroid(Directory projectRoot, Directory fmodSdksDir) async {
   }
 }
 
-Future<bool> setupIOS(Directory projectRoot, Directory fmodSdksDir) async {
+Future<bool> setupIOS(Directory projectRoot, Directory enginesDir) async {
   print('\n🍎 Setting up iOS...');
 
-  final iosSdkDir = Directory('${fmodSdksDir.path}/ios');
+  final iosSdkDir = Directory('${enginesDir.path}/ios');
   if (!await iosSdkDir.exists()) {
-    print('   ⚠️  ios/ not found in fmod_sdks/');
+    print('   ⚠️  ios/ not found in engines/');
     print('   Skipping iOS setup.');
     return false;
   }
@@ -266,7 +266,7 @@ Future<bool> setupIOS(Directory projectRoot, Directory fmodSdksDir) async {
       .toList();
 
   if (sdkDirs.isEmpty) {
-    print('   ⚠️  No FMOD SDK found in fmod_sdks/ios/');
+    print('   ⚠️  No FMOD SDK found in engines/ios/');
     return false;
   }
 
@@ -328,12 +328,12 @@ Future<bool> setupIOS(Directory projectRoot, Directory fmodSdksDir) async {
   }
 }
 
-Future<bool> setupWeb(Directory projectRoot, Directory fmodSdksDir) async {
+Future<bool> setupWeb(Directory projectRoot, Directory enginesDir) async {
   print('\n🌐 Setting up Web...');
 
-  final html5SdkDir = Directory('${fmodSdksDir.path}/html5');
+  final html5SdkDir = Directory('${enginesDir.path}/html5');
   if (!await html5SdkDir.exists()) {
-    print('   ⚠️  html5/ not found in fmod_sdks/');
+    print('   ⚠️  html5/ not found in engines/');
     print('   Skipping Web setup.');
     return false;
   }
@@ -345,7 +345,7 @@ Future<bool> setupWeb(Directory projectRoot, Directory fmodSdksDir) async {
       .toList();
 
   if (sdkDirs.isEmpty) {
-    print('   ⚠️  No FMOD SDK found in fmod_sdks/html5/');
+    print('   ⚠️  No FMOD SDK found in engines/html5/');
     return false;
   }
 

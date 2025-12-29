@@ -99,10 +99,10 @@ flutter pub get
 
 ```bash
 # In your project root
-mkdir fmod_sdks
+mkdir engines
 
 # Download FMOD Studio API from fmod.com
-# Place downloaded files in fmod_sdks/
+# Place downloaded files in engines/
 
 # Run setup script
 dart run fmod_flutter:setup_fmod
@@ -272,7 +272,7 @@ Add to `web/index.html` in `<head>`:
 ### For Private/Closed-Source Projects
 
 **You can commit FMOD files!** For your private game repository, it's often easier to commit:
-- ✅ `fmod_sdks/` (or the extracted files)
+- ✅ `engines/` (or the extracted SDK files)
 - ✅ `android/app/src/main/jniLibs/libfmod*.so`
 - ✅ `ios/FMOD/`
 - ✅ `web/fmod/`
@@ -285,7 +285,7 @@ Your team members just clone and build - no setup needed!
 
 ```gitignore
 # FMOD SDK files (proprietary - can't redistribute publicly)
-fmod_sdks/
+engines/
 android/app/src/main/jniLibs/libfmod*.so
 ios/FMOD/
 web/fmod/
@@ -402,12 +402,12 @@ Team setup:
 
 1. Clone your project
 2. Run `flutter pub get`
-3. Create `fmod_sdks/` directory
+3. Create `engines/` directory
 4. Download FMOD SDKs from fmod.com (with their account)
 5. Run `dart run fmod_flutter:setup_fmod`
 6. Build and run!
 
-(Don't commit `fmod_sdks/` or FMOD native files - see .gitignore section)
+(Don't commit `engines/` or FMOD native files - see .gitignore section)
 
 ---
 

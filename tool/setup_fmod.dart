@@ -12,8 +12,14 @@ void main() async {
   if (!await enginesDir.exists()) {
     print('❌ engines/ directory not found!');
     print('   Expected: ${enginesDir.path}');
-    print('   Please create it and add FMOD Engine SDKs.');
-    print('   See engines/README.md for instructions.\n');
+    print('\n📋 Setup Instructions:');
+    print('   1. Create the directory: mkdir engines');
+    print('   2. Download FMOD Studio API from https://www.fmod.com/download');
+    print('   3. Place the downloaded files in engines/:');
+    print('      - fmodstudioapi*android.tar.gz');
+    print('      - fmodstudioapi*ios-installer.dmg');
+    print('      - fmodstudioapi*html5.zip');
+    print('   4. Run this script again\n');
     exit(1);
   }
 

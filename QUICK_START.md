@@ -20,13 +20,13 @@ flutter pub get
 
 1. Sign up at [fmod.com/download](https://www.fmod.com/download) (free)
 2. Download **FMOD Studio API** for your platforms
-3. Place in `fmod_sdks/` directory in your project root
+3. Place in `engines/` directory in your project root
 
 ### 3. Run Setup
 
 ```bash
-mkdir fmod_sdks
-# Add downloaded files to fmod_sdks/
+mkdir engines
+# Add downloaded files to engines/
 dart run fmod_flutter:setup_fmod
 ```
 
@@ -60,7 +60,7 @@ await fmod.playEvent('event:/Music/MainTheme');
 Add this to `.gitignore`:
 
 ```gitignore
-fmod_sdks/
+engines/
 android/app/src/main/jniLibs/libfmod*.so
 ios/FMOD/
 web/fmod/

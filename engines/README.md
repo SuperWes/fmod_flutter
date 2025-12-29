@@ -4,9 +4,9 @@
 
 ## For Plugin Users
 
-If you're using this plugin in your own Flutter app, **you don't need this directory**.
+If you're using this plugin in your own Flutter app, **create `engines/` in YOUR project root** (not here).
 
-Instead, create `fmod_sdks/` in your project and follow the [main README](../README.md).
+Follow the setup instructions in the [main README](../README.md).
 
 ## For Running the Example App
 
