@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'fmod_platform_interface.dart';
 
 /// High-level service for managing FMOD audio in Flutter applications.
@@ -13,11 +14,13 @@ import 'fmod_platform_interface.dart';
 /// ]);
 /// await fmod.playEvent('event:/Music/MainTheme');
 /// ```
-class FmodService {
+class FmodService with WidgetsBindingObserver {
   final FmodPlatform _platform = FmodPlatform.instance;
 
   bool _isInitialized = false;
   final Map<String, bool> _playingEvents = {};
+  final Map<String, bool> _pausedBySystem = {};
+  bool _isPausedByLifecycle = false;
 
   /// Whether FMOD has been successfully initialized
   bool get isInitialized => _isInitialized;
@@ -31,6 +34,10 @@ class FmodService {
 
     try {
       _isInitialized = await _platform.initialize();
+      if (_isInitialized) {
+        // Register lifecycle observer to handle app backgrounding
+        WidgetsBinding.instance.addObserver(this);
+      }
       debugPrint('FMOD initialized: $_isInitialized');
       return _isInitialized;
     } catch (e) {
@@ -168,9 +175,11 @@ class FmodService {
     if (!_isInitialized) return;
 
     try {
+      WidgetsBinding.instance.removeObserver(this);
       await _platform.release();
       _isInitialized = false;
       _playingEvents.clear();
+      _pausedBySystem.clear();
       debugPrint('FMOD released');
     } catch (e) {
       debugPrint('Failed to release FMOD: $e');
@@ -180,6 +189,57 @@ class FmodService {
   /// Check if an event is currently playing.
   bool isEventPlaying(String eventPath) {
     return _playingEvents[eventPath] ?? false;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_isInitialized) return;
+
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        // App is going to background - pause all playing events
+        _pauseAllEvents();
+        break;
+      case AppLifecycleState.resumed:
+        // App is coming back - resume previously playing events
+        _resumeAllEvents();
+        break;
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        break;
+    }
+  }
+
+  /// Pause all currently playing events when app goes to background
+  void _pauseAllEvents() {
+    if (_isPausedByLifecycle) return;
+    
+    _isPausedByLifecycle = true;
+    _pausedBySystem.clear();
+    
+    for (var entry in _playingEvents.entries) {
+      if (entry.value) {
+        // This event is playing, pause it
+        setPaused(entry.key, true);
+        _pausedBySystem[entry.key] = true;
+      }
+    }
+    debugPrint('FMOD: Paused ${_pausedBySystem.length} events (app backgrounded)');
+  }
+
+  /// Resume events that were paused by the system when app returns to foreground
+  void _resumeAllEvents() {
+    if (!_isPausedByLifecycle) return;
+    
+    _isPausedByLifecycle = false;
+    
+    for (var eventPath in _pausedBySystem.keys) {
+      // Only resume events that were paused by the system, not by user
+      setPaused(eventPath, false);
+    }
+    debugPrint('FMOD: Resumed ${_pausedBySystem.length} events (app resumed)');
+    _pausedBySystem.clear();
   }
 }
 
