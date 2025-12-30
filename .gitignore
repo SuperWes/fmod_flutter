@@ -34,6 +34,7 @@ pubspec.lock
 # Android related
 android/build/
 **/android/**/build/
+**/android/.cxx/
 **/android/**/gradle-wrapper.jar
 **/android/.gradle
 **/android/captures/
@@ -73,12 +74,7 @@ android/build/
 
 # FMOD Engine files (proprietary - cannot redistribute)
 # Users must download FMOD Engine and run setup script
-engines/*.tar.gz
-engines/*.zip
-engines/*.dmg
-engines/android/fmodstudio*/
-engines/ios/fmodstudioapi*/
-engines/html5/fmodstudio*/
+engines/
 
 # FMOD native libraries (plugin)
 android/libs/*.aar

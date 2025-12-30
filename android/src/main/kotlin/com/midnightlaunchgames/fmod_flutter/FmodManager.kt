@@ -78,21 +78,30 @@ class FmodManager(private val context: Context) {
         
         for (bankPath in bankPaths) {
             try {
+                // Flutter assets are stored in flutter_assets/ subdirectory on Android
+                val flutterAssetPath = "flutter_assets/$bankPath"
+                
                 // Read bank file from assets
-                val inputStream = assetManager.open(bankPath)
+                val inputStream = try {
+                    assetManager.open(flutterAssetPath)
+                } catch (e: IOException) {
+                    // Fallback to direct path if flutter_assets prefix doesn't work
+                    Log.d(TAG, "Trying fallback path: $bankPath")
+                    assetManager.open(bankPath)
+                }
                 val bankData = inputStream.readBytes()
                 inputStream.close()
                 
-                Log.d(TAG, "Loading bank: $bankPath (${bankData.size} bytes)")
+                Log.d(TAG, "Loading bank: $flutterAssetPath (${bankData.size} bytes)")
                 
                 if (nativeLoadBank(bankData)) {
-                    Log.d(TAG, "✓ Loaded: $bankPath")
+                    Log.d(TAG, "✓ Loaded: $flutterAssetPath")
                 } else {
-                    Log.e(TAG, "✗ Failed to load: $bankPath")
+                    Log.e(TAG, "✗ Failed to load: $flutterAssetPath")
                     allLoaded = false
                 }
             } catch (e: IOException) {
-                Log.e(TAG, "Failed to read bank file: $bankPath", e)
+                Log.e(TAG, "Failed to read bank file: $bankPath (tried flutter_assets/$bankPath)", e)
                 allLoaded = false
             }
         }
