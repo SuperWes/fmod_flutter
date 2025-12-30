@@ -34,9 +34,10 @@
     NSError *error = nil;
     AVAudioSession *audioSession = [AVAudioSession sharedInstance];
     
-    // Set audio session category to allow playback and mixing with other apps
-    [audioSession setCategory:AVAudioSessionCategoryPlayback
-                  withOptions:AVAudioSessionCategoryOptionMixWithOthers
+    // Set audio session category to Ambient:
+    // - Respects the silent switch (mutes when phone is silenced)
+    // - Mixes with other apps' audio (user can listen to their own music)
+    [audioSession setCategory:AVAudioSessionCategoryAmbient
                         error:&error];
     
     if (error) {
