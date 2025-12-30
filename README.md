@@ -235,7 +235,12 @@ await fmod.setVolume('event:/main_music', 0.5);
 
 ### iOS
 
-The setup script automatically configures iOS. The plugin's `podspec` references `ios/FMOD/` in your project.
+The setup script copies FMOD libraries to your app's `ios/FMOD/` directory:
+- `ios/FMOD/include/` - Header files
+- `ios/FMOD/lib/device/` - Device libraries (`libfmod_iphoneos.a`, `libfmodstudio_iphoneos.a`)
+- `ios/FMOD/lib/simulator/` - Simulator libraries (`libfmod_iphonesimulator.a`, `libfmodstudio_iphonesimulator.a`)
+
+The plugin's podspec automatically links the correct libraries for device vs simulator builds. **No Podfile modifications needed!**
 
 **First build**: May take longer as CocoaPods processes FMOD libraries.
 
