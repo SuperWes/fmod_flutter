@@ -23,6 +23,52 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
+// Task to copy FMOD native libraries from the app's jniLibs to the plugin's jniLibs
+// This allows the plugin to work as a git dependency while the app provides the libs
+task copyFmodLibs {
+    doFirst {
+        def architectures = ['armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64']
+        def appJniLibsDir = null
+        
+        // Find the app's jniLibs directory
+        rootProject.allprojects { proj ->
+            if (proj.name == 'app') {
+                appJniLibsDir = new File(proj.projectDir, 'src/main/jniLibs')
+            }
+        }
+        
+        if (appJniLibsDir != null && appJniLibsDir.exists()) {
+            def pluginJniLibsDir = new File(projectDir, 'src/main/jniLibs')
+            
+            architectures.each { arch ->
+                def srcDir = new File(appJniLibsDir, arch)
+                def destDir = new File(pluginJniLibsDir, arch)
+                
+                if (srcDir.exists()) {
+                    destDir.mkdirs()
+                    
+                    ['libfmod.so', 'libfmodstudio.so'].each { lib ->
+                        def srcFile = new File(srcDir, lib)
+                        def destFile = new File(destDir, lib)
+                        
+                        if (srcFile.exists() && !destFile.exists()) {
+                            println "FMOD: Copying ${lib} for ${arch}"
+                            destFile.bytes = srcFile.bytes
+                        }
+                    }
+                }
+            }
+        } else {
+            println "FMOD: App jniLibs not found - native libs should be in plugin's jniLibs"
+        }
+    }
+}
+
+// Run copyFmodLibs before CMake configuration
+tasks.matching { it.name.startsWith('configureCMake') }.configureEach {
+    dependsOn copyFmodLibs
+}
+
 android {
     namespace 'com.midnightlaunchgames.fmod_flutter'
     compileSdkVersion 34
