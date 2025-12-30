@@ -79,7 +79,7 @@ engines/
 # FMOD native libraries (plugin)
 android/libs/*.aar
 android/libs/*.jar
-android/libs/include/
+# Note: android/libs/include/ (headers) ARE committed - they're needed for compilation
 android/src/main/jniLibs/
 
 # FMOD native libraries (example)
