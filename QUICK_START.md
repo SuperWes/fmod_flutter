@@ -57,14 +57,17 @@ await fmod.playEvent('event:/Music/MainTheme');
 
 ## .gitignore
 
-Add this to `.gitignore`:
+Add this to `.gitignore` (for public/open-source projects):
 
 ```gitignore
 engines/
 android/app/src/main/jniLibs/libfmod*.so
+android/app/libs/fmod/
 ios/FMOD/
 web/fmod/
 ```
+
+For **private projects**, you can commit these files so your team doesn't need to run setup.
 
 ---
 

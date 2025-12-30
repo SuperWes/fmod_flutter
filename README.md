@@ -253,12 +253,17 @@ flutter run
 
 ✅ **Full JNI integration** - uses native C++ to call FMOD's C++ API via JNI (Java Native Interface).
 
-Native libraries (`.so` files) are automatically copied to `android/app/src/main/jniLibs/` with support for:
+The setup script copies FMOD files to your app:
+- `android/app/src/main/jniLibs/*/libfmod.so` - native libraries
+- `android/app/src/main/jniLibs/*/libfmodstudio.so` - native libraries  
+- `android/app/libs/fmod/fmod.jar` - Java classes
+
+Supported architectures:
 - `arm64-v8a` (modern 64-bit devices)
 - `armeabi-v7a` (older 32-bit devices)  
 - `x86` & `x86_64` (emulators)
 
-The plugin uses CMake to build the native JNI wrapper that bridges Kotlin to FMOD's C++ API.
+The plugin uses CMake to build the native JNI wrapper that bridges Kotlin to FMOD's C++ API. At build time, gradle copies the FMOD files from your app to the plugin.
 
 **Troubleshooting**: Rerun `dart run fmod_flutter:setup_fmod` to restore libraries.
 
@@ -294,6 +299,7 @@ Your team members just clone and build - no setup needed!
 # FMOD SDK files (proprietary - can't redistribute publicly)
 engines/
 android/app/src/main/jniLibs/libfmod*.so
+android/app/libs/fmod/
 ios/FMOD/
 web/fmod/
 ```

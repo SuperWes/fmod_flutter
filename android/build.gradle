@@ -23,49 +23,72 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
-// Task to copy FMOD native libraries from the app's jniLibs to the plugin's jniLibs
-// This allows the plugin to work as a git dependency while the app provides the libs
+// Task to copy FMOD files from the app to the plugin
+// This allows the plugin to work as a git dependency while the app provides the proprietary FMOD files
 task copyFmodLibs {
     doFirst {
         def architectures = ['armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64']
-        def appJniLibsDir = null
+        def appDir = null
         
-        // Find the app's jniLibs directory
+        // Find the app's directory
         rootProject.allprojects { proj ->
             if (proj.name == 'app') {
-                appJniLibsDir = new File(proj.projectDir, 'src/main/jniLibs')
+                appDir = proj.projectDir
             }
         }
         
-        if (appJniLibsDir != null && appJniLibsDir.exists()) {
-            def pluginJniLibsDir = new File(projectDir, 'src/main/jniLibs')
-            
-            architectures.each { arch ->
-                def srcDir = new File(appJniLibsDir, arch)
-                def destDir = new File(pluginJniLibsDir, arch)
+        if (appDir != null) {
+            // Copy native .so libraries
+            def appJniLibsDir = new File(appDir, 'src/main/jniLibs')
+            if (appJniLibsDir.exists()) {
+                def pluginJniLibsDir = new File(projectDir, 'src/main/jniLibs')
                 
-                if (srcDir.exists()) {
-                    destDir.mkdirs()
+                architectures.each { arch ->
+                    def srcDir = new File(appJniLibsDir, arch)
+                    def destDir = new File(pluginJniLibsDir, arch)
                     
-                    ['libfmod.so', 'libfmodstudio.so'].each { lib ->
-                        def srcFile = new File(srcDir, lib)
-                        def destFile = new File(destDir, lib)
+                    if (srcDir.exists()) {
+                        destDir.mkdirs()
                         
-                        if (srcFile.exists() && !destFile.exists()) {
-                            println "FMOD: Copying ${lib} for ${arch}"
-                            destFile.bytes = srcFile.bytes
+                        ['libfmod.so', 'libfmodstudio.so'].each { lib ->
+                            def srcFile = new File(srcDir, lib)
+                            def destFile = new File(destDir, lib)
+                            
+                            if (srcFile.exists() && !destFile.exists()) {
+                                println "FMOD: Copying ${lib} for ${arch}"
+                                destFile.bytes = srcFile.bytes
+                            }
                         }
                     }
                 }
+            } else {
+                println "FMOD: App jniLibs not found at ${appJniLibsDir}"
+            }
+            
+            // Copy fmod.jar
+            def appFmodLibsDir = new File(appDir, 'libs/fmod')
+            def appFmodJar = new File(appFmodLibsDir, 'fmod.jar')
+            def pluginLibsDir = new File(projectDir, 'libs')
+            def pluginFmodJar = new File(pluginLibsDir, 'fmod.jar')
+            
+            if (appFmodJar.exists() && !pluginFmodJar.exists()) {
+                pluginLibsDir.mkdirs()
+                println "FMOD: Copying fmod.jar"
+                pluginFmodJar.bytes = appFmodJar.bytes
+            } else if (!appFmodJar.exists()) {
+                println "FMOD: fmod.jar not found at ${appFmodJar}"
             }
         } else {
-            println "FMOD: App jniLibs not found - native libs should be in plugin's jniLibs"
+            println "FMOD: App project not found - FMOD files should be in plugin directories"
         }
     }
 }
 
-// Run copyFmodLibs before CMake configuration
+// Run copyFmodLibs before CMake configuration and before compiling
 tasks.matching { it.name.startsWith('configureCMake') }.configureEach {
+    dependsOn copyFmodLibs
+}
+tasks.matching { it.name.startsWith('compile') && it.name.endsWith('Kotlin') }.configureEach {
     dependsOn copyFmodLibs
 }
 
@@ -106,9 +129,9 @@ android {
             path "src/main/cpp/CMakeLists.txt"
         }
     }
+}
 
-    dependencies {
-        implementation fileTree(dir: 'libs', include: ['*.jar'])
-    }
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
 

@@ -244,23 +244,30 @@ Future<bool> setupAndroid(Directory packageRoot, Directory enginesDir) async {
   final sdkDir = sdkDirs.first as Directory;
   print('   Found SDK: ${sdkDir.path.split('/').last}');
 
-  // Copy .jar files to plugin's libs directory
-  final libsDestDir = Directory('${packageRoot.path}/android/libs');
-  await libsDestDir.create(recursive: true);
-
-  var copied = 0;
-  
   // Copy fmod.jar from core
   final coreJar = File('${sdkDir.path}/api/core/lib/fmod.jar');
-  if (await coreJar.exists()) {
-    await coreJar.copy('${libsDestDir.path}/fmod.jar');
-    copied++;
-    print('   ✓ Copied fmod.jar to plugin');
-  }
-
-  if (copied == 0) {
-    print('   ⚠️  No .jar files found');
+  if (!await coreJar.exists()) {
+    print('   ⚠️  fmod.jar not found in SDK');
     return false;
+  }
+  
+  // Check if we're in the plugin directory or a user's project
+  final isPluginDir = await Directory('${packageRoot.path}/example').exists();
+  
+  if (isPluginDir) {
+    // Running in plugin directory - copy to plugin's libs (for local development)
+    final pluginLibsDir = Directory('${packageRoot.path}/android/libs');
+    await pluginLibsDir.create(recursive: true);
+    await coreJar.copy('${pluginLibsDir.path}/fmod.jar');
+    print('   ✓ Copied fmod.jar to plugin/android/libs/');
+  }
+  
+  // Copy to app's libs/fmod directory (for git dependency usage)
+  final userAppLibsDir = Directory('${packageRoot.path}/android/app/libs/fmod');
+  if (await Directory('${packageRoot.path}/android/app').exists()) {
+    await userAppLibsDir.create(recursive: true);
+    await coreJar.copy('${userAppLibsDir.path}/fmod.jar');
+    print('   ✓ Copied fmod.jar to android/app/libs/fmod/');
   }
   
   // Copy header files to plugin's libs/include directory
