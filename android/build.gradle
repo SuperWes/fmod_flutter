@@ -112,6 +112,9 @@ android {
     defaultConfig {
         minSdkVersion 21
         
+        // Include ProGuard rules for apps using this plugin
+        consumerProguardFiles 'proguard-rules.pro'
+        
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++11"
