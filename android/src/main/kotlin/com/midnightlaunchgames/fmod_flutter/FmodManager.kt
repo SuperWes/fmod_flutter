@@ -44,6 +44,7 @@ class FmodManager(private val context: Context) {
     private external fun nativeUpdate()
     private external fun nativeRelease()
     private external fun nativeLogAvailableEvents()
+    private external fun nativeSetMasterPaused(paused: Boolean): Boolean
     
     /**
      * Initialize the FMOD Studio system.
@@ -179,6 +180,24 @@ class FmodManager(private val context: Context) {
         nativeUpdate()
     }
     
+    /**
+     * Release all FMOD resources.
+     * Should be called when done using FMOD.
+     */
+    /**
+     * Pause or resume all audio by pausing the master bus.
+     * @param paused Whether to pause (true) or resume (false)
+     * @return true if successful
+     */
+    fun setMasterPaused(paused: Boolean): Boolean {
+        Log.d(TAG, "Setting master paused = $paused")
+        val success = nativeSetMasterPaused(paused)
+        if (!success) {
+            Log.e(TAG, "Failed to set master paused state")
+        }
+        return success
+    }
+
     /**
      * Release all FMOD resources.
      * Should be called when done using FMOD.

@@ -23,6 +23,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)update;
 - (void)releaseFmod;
 - (void)logAvailableEvents;
+- (BOOL)setMasterPaused:(BOOL)paused;
 
 @end
 

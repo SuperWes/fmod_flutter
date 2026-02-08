@@ -75,5 +75,10 @@ class MethodChannelFmod extends FmodPlatform {
   Future<void> release() async {
     await _channel.invokeMethod('release');
   }
+
+  @override
+  Future<void> setMasterPaused(bool paused) async {
+    await _channel.invokeMethod('setMasterPaused', {'paused': paused});
+  }
 }
 

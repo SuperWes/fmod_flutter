@@ -39,6 +39,9 @@ abstract class FmodPlatform extends PlatformInterface {
   /// Set the volume of an event
   Future<void> setVolume(String eventPath, double volume);
 
+  /// Pause or resume the master bus (all audio)
+  Future<void> setMasterPaused(bool paused);
+
   /// Update the FMOD system (should be called regularly)
   Future<void> update();
 

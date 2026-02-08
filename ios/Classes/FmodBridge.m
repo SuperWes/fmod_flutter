@@ -343,6 +343,34 @@
     }
 }
 
+
+- (BOOL)setMasterPaused:(BOOL)paused {
+    if (studioSystem == NULL) {
+        NSLog(@"FmodBridge: Studio system not initialized");
+        return NO;
+    }
+    
+    FMOD_STUDIO_BUS *masterBus = NULL;
+    FMOD_RESULT result = FMOD_Studio_System_GetBus(studioSystem, "bus:/", &masterBus);
+    
+    if (result != FMOD_OK || masterBus == NULL) {
+        NSLog(@"FmodBridge: Failed to get master bus: %d - %s", 
+              result, FMOD_ErrorString(result));
+        return NO;
+    }
+    
+    result = FMOD_Studio_Bus_SetPaused(masterBus, paused ? 1 : 0);
+    
+    if (result != FMOD_OK) {
+        NSLog(@"FmodBridge: Failed to set master paused state: %d - %s", 
+              result, FMOD_ErrorString(result));
+        return NO;
+    }
+    
+    NSLog(@"FmodBridge: Master bus paused = %@", paused ? @"YES" : @"NO");
+    return YES;
+}
+
 - (void)dealloc {
     [self releaseFmod];
 }

@@ -328,5 +328,32 @@ Java_com_midnightlaunchgames_fmod_1flutter_FmodManager_nativeLogAvailableEvents(
     LOGD("=============================");
 }
 
+JNIEXPORT jboolean JNICALL
+Java_com_midnightlaunchgames_fmod_1flutter_FmodManager_nativeSetMasterPaused(
+    JNIEnv* env, jobject thiz, jboolean paused) {
+    
+    if (studioSystem == nullptr) {
+        LOGE("FMOD Studio System not initialized");
+        return JNI_FALSE;
+    }
+    
+    FMOD::Studio::Bus* masterBus = nullptr;
+    FMOD_RESULT result = studioSystem->getBus("bus:/", &masterBus);
+    
+    if (result != FMOD_OK || masterBus == nullptr) {
+        LOGE("Failed to get master bus: %d - %s", result, FMOD_ErrorString(result));
+        return JNI_FALSE;
+    }
+    
+    result = masterBus->setPaused(paused == JNI_TRUE);
+    if (result != FMOD_OK) {
+        LOGE("Failed to set master paused: %d - %s", result, FMOD_ErrorString(result));
+        return JNI_FALSE;
+    }
+    
+    LOGD("Master bus paused = %d", paused);
+    return JNI_TRUE;
+}
+
 } // extern "C"
 

@@ -73,6 +73,14 @@ class FmodFlutterPlugin: FlutterPlugin, MethodCallHandler {
           result.error("INVALID_ARGS", "Path and paused state required", null)
         }
       }
+      "setMasterPaused" -> {
+        val paused = call.argument<Boolean>("paused")
+        if (paused != null) {
+          result.success(fmodManager.setMasterPaused(paused))
+        } else {
+          result.error("INVALID_ARGS", "Paused state required", null)
+        }
+      }
       "setVolume" -> {
         val path = call.argument<String>("path")
         val volume = call.argument<Double>("volume")

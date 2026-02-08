@@ -26,6 +26,8 @@ public class FmodFlutterPlugin: NSObject, FlutterPlugin {
             handleSetPaused(call: call, result: result)
         case "setVolume":
             handleSetVolume(call: call, result: result)
+        case "setMasterPaused":
+            handleSetMasterPaused(call: call, result: result)
         case "update":
             fmodManager?.update()
             result(nil)
@@ -111,6 +113,16 @@ public class FmodFlutterPlugin: NSObject, FlutterPlugin {
         }
         
         fmodManager?.setVolume(path: path, volume: Float(volume))
+        result(nil)
+    }
+    private func handleSetMasterPaused(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let args = call.arguments as? [String: Any],
+              let paused = args["paused"] as? Bool else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Paused state required", details: nil))
+            return
+        }
+        
+        fmodManager?.setMasterPaused(paused)
         result(nil)
     }
 }

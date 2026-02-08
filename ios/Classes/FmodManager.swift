@@ -127,6 +127,15 @@ class FmodManager {
      * Update the FMOD system.
      * Should be called regularly (e.g., once per frame).
      */
+
+    /**
+     * Pause or resume the master bus (all audio).
+     * @param paused Whether to pause (true) or resume (false)
+     */
+    func setMasterPaused(_ paused: Bool) {
+        _ = bridge.setMasterPaused(paused)
+    }
+
     func update() {
         bridge.update()
     }

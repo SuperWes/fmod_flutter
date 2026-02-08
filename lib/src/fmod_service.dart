@@ -144,6 +144,34 @@ class FmodService with WidgetsBindingObserver {
     }
   }
 
+  /// Pause all audio by pausing the master bus.
+  ///
+  /// This is more reliable than tracking individual events.
+  /// Use this when the app goes to background.
+  Future<void> pauseAllAudio() async {
+    if (!_isInitialized) return;
+    try {
+      await _platform.setMasterPaused(true);
+      debugPrint('FMOD: Master bus paused');
+    } catch (e) {
+      debugPrint('Failed to pause master bus: $e');
+    }
+  }
+
+  /// Resume all audio by unpausing the master bus.
+  ///
+  /// Call this when the app returns to foreground.
+  Future<void> resumeAllAudio() async {
+    if (!_isInitialized) return;
+    try {
+      await _platform.setMasterPaused(false);
+      debugPrint('FMOD: Master bus resumed');
+    } catch (e) {
+      debugPrint('Failed to resume master bus: $e');
+    }
+  }
+
+
   /// Set the volume for a playing event.
   ///
   /// Volume should be between 0.0 (silent) and 1.0 (full volume).
@@ -199,11 +227,11 @@ class FmodService with WidgetsBindingObserver {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
         // App is going to background - pause all playing events
-        _pauseAllEvents();
+        pauseAllAudio();
         break;
       case AppLifecycleState.resumed:
         // App is coming back - resume previously playing events
-        _resumeAllEvents();
+        resumeAllAudio();
         break;
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
