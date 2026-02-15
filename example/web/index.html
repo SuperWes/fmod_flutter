@@ -18,7 +18,7 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="FMOD Flutter Example">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -31,7 +31,7 @@
 
   <title>FMOD Flutter Example</title>
   <link rel="manifest" href="manifest.json">
-  
+
   <style>
     body {
       margin: 0;
@@ -39,17 +39,17 @@
       overflow: hidden;
     }
   </style>
-  
-  <!-- Load FMOD before Flutter -->
-  <script src="fmod/fmodstudio.js" defer></script>
+
+  <!--
+    Load FMOD Studio WASM module BEFORE Flutter.
+    This must be a regular (non-deferred, non-async) script so that
+    the global FMODModule function is available when Dart code runs.
+    The Dart FmodWeb plugin will call FMODModule(FMOD) itself during
+    initialize().
+  -->
+  <script src="fmod/fmodstudio.js"></script>
 </head>
 <body>
-  <script>
-    console.log('[FMOD] Checking for FMOD availability...');
-    console.log('[FMOD] typeof FMOD:', typeof FMOD);
-    console.log('[FMOD] window.FMOD:', window.FMOD);
-  </script>
-  
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

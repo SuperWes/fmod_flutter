@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+
 import 'fmod_platform_interface.dart';
 
 /// High-level service for managing FMOD audio in Flutter applications.
@@ -171,7 +171,6 @@ class FmodService with WidgetsBindingObserver {
     }
   }
 
-
   /// Set the volume for a playing event.
   ///
   /// Volume should be between 0.0 (silent) and 1.0 (full volume).
@@ -242,10 +241,10 @@ class FmodService with WidgetsBindingObserver {
   /// Pause all currently playing events when app goes to background
   void _pauseAllEvents() {
     if (_isPausedByLifecycle) return;
-    
+
     _isPausedByLifecycle = true;
     _pausedBySystem.clear();
-    
+
     for (var entry in _playingEvents.entries) {
       if (entry.value) {
         // This event is playing, pause it
@@ -253,15 +252,17 @@ class FmodService with WidgetsBindingObserver {
         _pausedBySystem[entry.key] = true;
       }
     }
-    debugPrint('FMOD: Paused ${_pausedBySystem.length} events (app backgrounded)');
+    debugPrint(
+      'FMOD: Paused ${_pausedBySystem.length} events (app backgrounded)',
+    );
   }
 
   /// Resume events that were paused by the system when app returns to foreground
   void _resumeAllEvents() {
     if (!_isPausedByLifecycle) return;
-    
+
     _isPausedByLifecycle = false;
-    
+
     for (var eventPath in _pausedBySystem.keys) {
       // Only resume events that were paused by the system, not by user
       setPaused(eventPath, false);
@@ -270,4 +271,3 @@ class FmodService with WidgetsBindingObserver {
     _pausedBySystem.clear();
   }
 }
-

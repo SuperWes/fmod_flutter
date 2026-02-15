@@ -4,11 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FMOD Flutter</title>
-  
-  <!-- Load FMOD Studio WASM module -->
-  <!-- Note: FMOD for web requires the fmodstudio.js script which loads the WASM -->
+
+  <!--
+    Load FMOD Studio WASM module BEFORE Flutter.
+    This must be a regular (non-deferred, non-async) script so that
+    the global FMODModule function is available when Dart code runs.
+    The Dart FmodWeb plugin will call FMODModule(FMOD) itself during
+    initialize().
+  -->
   <script src="assets/fmod/fmodstudio.js"></script>
-  
+
   <style>
     body {
       margin: 0;
@@ -18,22 +23,7 @@
   </style>
 </head>
 <body>
-  <!-- Flutter web will inject its content here -->
   <script src="flutter_bootstrap.js" async></script>
-  
-  <script>
-    // Ensure FMOD WASM is ready before Flutter initializes
-    window.addEventListener('load', function() {
-      console.log('Page loaded, FMOD script should be available');
-      
-      // Check if FMOD is loaded
-      if (typeof FMOD !== 'undefined') {
-        console.log('FMOD JavaScript API loaded successfully');
-      } else {
-        console.warn('FMOD JavaScript API not found - audio may not work');
-      }
-    });
-  </script>
 </body>
 </html>
 
