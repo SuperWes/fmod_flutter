@@ -42,6 +42,8 @@ void main() async {
     print('3. Place the downloaded files in engines/:');
     print('   - fmodstudioapi*android.tar.gz');
     print('   - fmodstudioapi*ios-installer.dmg');
+    print('   - fmodstudioapi*mac-installer.dmg');
+    print('   - fmodstudioapi*win-installer.exe (extract first)');
     print('   - fmodstudioapi*html5.zip\n');
     print('4. Run this command again: dart run fmod_flutter:setup_fmod\n');
     exit(1);
@@ -57,6 +59,12 @@ void main() async {
   
   // Setup iOS
   success = await setupIOS(projectRoot, enginesDir) && success;
+
+  // Setup macOS
+  success = await setupMacOS(projectRoot, enginesDir) && success;
+
+  // Setup Windows
+  success = await setupWindows(projectRoot, enginesDir) && success;
   
   // Setup Web
   success = await setupWeb(projectRoot, enginesDir) && success;
@@ -116,7 +124,7 @@ Future<void> extractArchives(Directory enginesDir) async {
       var result = await Process.run('hdiutil', ['attach', path, '-nobrowse', '-quiet']);
       
       if (result.exitCode == 0) {
-        await Future.delayed(Duration(seconds: 1));
+        await Future.delayed(const Duration(seconds: 1));
         
         // Find mounted volume
         final volumes = await Directory('/Volumes').list().toList();
@@ -156,6 +164,62 @@ Future<void> extractArchives(Directory enginesDir) async {
             print('   Copying SDK...');
             await _copyDirectory(sdkDir, targetDir);
             print('   ✓ Extracted to engines/ios/$sdkName');
+            extracted = true;
+          }
+          
+          await Process.run('hdiutil', ['detach', fmodVolume.path, '-quiet']);
+        }
+      }
+    }
+    
+    // macOS: .dmg
+    else if (fileName.endsWith('.dmg') && fileName.contains('mac')) {
+      print('   Found macOS SDK: $fileName');
+      final destDir = Directory('${enginesDir.path}/macos');
+      await destDir.create(recursive: true);
+      
+      print('   Mounting DMG...');
+      var result = await Process.run('hdiutil', ['attach', path, '-nobrowse', '-quiet']);
+      
+      if (result.exitCode == 0) {
+        await Future.delayed(const Duration(seconds: 1));
+        
+        final volumes = await Directory('/Volumes').list().toList();
+        Directory? fmodVolume;
+        
+        for (final vol in volumes) {
+          if (vol is Directory) {
+            final volName = vol.path.split('/').last.toLowerCase();
+            if (volName.contains('fmod') && !volName.contains('studio')) {
+              fmodVolume = vol;
+              break;
+            }
+          }
+        }
+        
+        if (fmodVolume != null) {
+          final contents = await fmodVolume.list().toList();
+          Directory? sdkDir;
+          
+          for (final item in contents) {
+            if (item is Directory && (item.path.contains('fmodstudioapi') || 
+                item.path.contains('FMOD Programmers API'))) {
+              sdkDir = item;
+              break;
+            }
+          }
+          
+          if (sdkDir != null) {
+            var sdkName = sdkDir.path.split('/').last;
+            if (sdkName.contains('FMOD Programmers API')) {
+              final match = RegExp(r'fmodstudioapi(\d+)').firstMatch(fileName);
+              sdkName = match != null ? 'fmodstudioapi${match.group(1)}mac' : 'fmodstudioapi-mac';
+            }
+            
+            final targetDir = Directory('${destDir.path}/$sdkName');
+            print('   Copying SDK...');
+            await _copyDirectory(sdkDir, targetDir);
+            print('   \u2713 Extracted to engines/macos/$sdkName');
             extracted = true;
           }
           
@@ -321,6 +385,168 @@ Future<bool> setupIOS(Directory projectRoot, Directory enginesDir) async {
 
   if (libsCopied > 0 && headersCopied > 0) {
     print('   ✓ Copied $libsCopied libraries and $headersCopied headers to ios/FMOD/');
+    return true;
+  } else {
+    print('   ⚠️  Failed to copy libraries or headers');
+    return false;
+  }
+}
+
+Future<bool> setupMacOS(Directory projectRoot, Directory enginesDir) async {
+  print('\n🖥️  Setting up macOS...');
+
+  final macosSdkDir = Directory('${enginesDir.path}/macos');
+  if (!await macosSdkDir.exists()) {
+    print('   ⚠️  macos/ not found in engines/');
+    print('   Skipping macOS setup.');
+    return false;
+  }
+
+  // Find FMOD SDK
+  final sdkDirs = await macosSdkDir
+      .list()
+      .where((entity) => entity is Directory && entity.path.contains('fmodstudioapi'))
+      .toList();
+
+  if (sdkDirs.isEmpty) {
+    print('   ⚠️  No FMOD SDK found in engines/macos/');
+    return false;
+  }
+
+  final sdkDir = sdkDirs.first as Directory;
+  print('   Found: ${sdkDir.path.split('/').last}');
+
+  // Create FMOD directories in user's macOS project
+  final fmodDir = Directory('${projectRoot.path}/macos/FMOD');
+  final fmodLibDir = Directory('${fmodDir.path}/lib');
+  final fmodIncludeDir = Directory('${fmodDir.path}/include');
+
+  await fmodLibDir.create(recursive: true);
+  await fmodIncludeDir.create(recursive: true);
+
+  // Copy dynamic libraries
+  final dylibs = [
+    {'src': '${sdkDir.path}/api/core/lib/libfmod.dylib', 'name': 'libfmod.dylib'},
+    {'src': '${sdkDir.path}/api/studio/lib/libfmodstudio.dylib', 'name': 'libfmodstudio.dylib'},
+  ];
+
+  var libsCopied = 0;
+  for (final lib in dylibs) {
+    final srcFile = File(lib['src']!);
+    if (await srcFile.exists()) {
+      await srcFile.copy('${fmodLibDir.path}/${lib['name']}');
+      libsCopied++;
+    }
+  }
+
+  // Copy headers
+  var headersCopied = 0;
+  for (final type in ['core', 'studio']) {
+    final incDir = Directory('${sdkDir.path}/api/$type/inc');
+    if (await incDir.exists()) {
+      await for (final entity in incDir.list()) {
+        if (entity is File &&
+            (entity.path.endsWith('.h') || entity.path.endsWith('.hpp'))) {
+          final fileName = entity.path.split('/').last;
+          await entity.copy('${fmodIncludeDir.path}/$fileName');
+          headersCopied++;
+        }
+      }
+    }
+  }
+
+  if (libsCopied > 0 && headersCopied > 0) {
+    print('   ✓ Copied $libsCopied libraries and $headersCopied headers to macos/FMOD/');
+    return true;
+  } else {
+    print('   ⚠️  Failed to copy libraries or headers');
+    return false;
+  }
+}
+
+Future<bool> setupWindows(Directory projectRoot, Directory enginesDir) async {
+  print('\n🪟 Setting up Windows...');
+
+  final windowsSdkDir = Directory('${enginesDir.path}/windows');
+  if (!await windowsSdkDir.exists()) {
+    print('   ⚠️  windows/ not found in engines/');
+    print('   Skipping Windows setup.');
+    print('   Download FMOD for Windows, run the installer, then copy the folder to engines/windows/');
+    return false;
+  }
+
+  // Find FMOD SDK
+  final sdkDirs = await windowsSdkDir
+      .list()
+      .where((entity) => entity is Directory && entity.path.contains('fmodstudioapi'))
+      .toList();
+
+  if (sdkDirs.isEmpty) {
+    print('   ⚠️  No FMOD SDK found in engines/windows/');
+    return false;
+  }
+
+  final sdkDir = sdkDirs.first as Directory;
+  print('   Found: ${sdkDir.path.split('/').last}');
+
+  // Create FMOD directories in user's Windows project
+  final fmodDir = Directory('${projectRoot.path}/windows/FMOD');
+  final fmodLibDir = Directory('${fmodDir.path}/lib');
+  final fmodDllDir = Directory('${fmodDir.path}/dll');
+  final fmodIncludeDir = Directory('${fmodDir.path}/include');
+
+  await fmodLibDir.create(recursive: true);
+  await fmodDllDir.create(recursive: true);
+  await fmodIncludeDir.create(recursive: true);
+
+  var copied = 0;
+
+  // Copy import libraries (.lib) - x64
+  final libs = [
+    {'src': '${sdkDir.path}/api/core/lib/x64/fmod_vc.lib', 'name': 'fmod_vc.lib'},
+    {'src': '${sdkDir.path}/api/studio/lib/x64/fmodstudio_vc.lib', 'name': 'fmodstudio_vc.lib'},
+  ];
+
+  for (final lib in libs) {
+    final srcFile = File(lib['src']!);
+    if (await srcFile.exists()) {
+      await srcFile.copy('${fmodLibDir.path}/${lib['name']}');
+      copied++;
+    }
+  }
+
+  // Copy DLLs
+  final dlls = [
+    {'src': '${sdkDir.path}/api/core/lib/x64/fmod.dll', 'name': 'fmod.dll'},
+    {'src': '${sdkDir.path}/api/studio/lib/x64/fmodstudio.dll', 'name': 'fmodstudio.dll'},
+  ];
+
+  for (final dll in dlls) {
+    final srcFile = File(dll['src']!);
+    if (await srcFile.exists()) {
+      await srcFile.copy('${fmodDllDir.path}/${dll['name']}');
+      copied++;
+    }
+  }
+
+  // Copy headers
+  var headersCopied = 0;
+  for (final type in ['core', 'studio']) {
+    final incDir = Directory('${sdkDir.path}/api/$type/inc');
+    if (await incDir.exists()) {
+      await for (final entity in incDir.list()) {
+        if (entity is File &&
+            (entity.path.endsWith('.h') || entity.path.endsWith('.hpp'))) {
+          final fileName = entity.path.split('/').last;
+          await entity.copy('${fmodIncludeDir.path}/$fileName');
+          headersCopied++;
+        }
+      }
+    }
+  }
+
+  if (copied > 0 && headersCopied > 0) {
+    print('   ✓ Copied $copied libraries/DLLs and $headersCopied headers to windows/FMOD/');
     return true;
   } else {
     print('   ⚠️  Failed to copy libraries or headers');

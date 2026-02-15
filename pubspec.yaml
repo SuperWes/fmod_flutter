@@ -30,6 +30,10 @@ flutter:
         pluginClass: FmodFlutterPlugin
       ios:
         pluginClass: FmodFlutterPlugin
+      macos:
+        pluginClass: FmodFlutterPlugin
+      windows:
+        pluginClass: FmodFlutterPluginCApi
       web:
         pluginClass: FmodWeb
         fileName: src/fmod_web.dart

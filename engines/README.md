@@ -16,6 +16,8 @@ Follow the setup instructions in the [main README](../README.md).
 2. Sign in (free account)
 3. Download **FMOD Studio API** for your platforms:
    - iOS: `.dmg` file
+   - macOS: `.dmg` file
+   - Windows: `.exe` installer (run it, then copy the installed folder here)
    - Android: `.tar.gz` file
    - Web: `.zip` file
 
@@ -25,7 +27,10 @@ Follow the setup instructions in the [main README](../README.md).
 engines/
 ├── fmodstudioapi*android.tar.gz
 ├── fmodstudioapi*ios-installer.dmg
+├── fmodstudioapi*mac-installer.dmg
 ├── fmodstudioapi*html5.zip
+├── windows/
+│   └── fmodstudioapi20XXXwin/   (copied from install location)
 └── README.md (this file)
 ```
 
