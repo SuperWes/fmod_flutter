@@ -1,6 +1,4 @@
-﻿#!/usr/bin/env dart
-
-/// FMOD Flutter Setup Script
+﻿/// FMOD Flutter Setup Script
 /// This script should be run from your Flutter project root.
 ///
 /// Usage:
