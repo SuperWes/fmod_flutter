@@ -65,22 +65,12 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
   "${FMOD_DIR}/lib/fmodstudio_vc.lib"
 )
 
-# Copy FMOD DLLs to the output directory so they're bundled with the app
-set(FMOD_DLLS
-  "${FMOD_DIR}/dll/fmod.dll"
-  "${FMOD_DIR}/dll/fmodstudio.dll"
-)
-
-# Install DLLs alongside the executable
-foreach(FMOD_DLL ${FMOD_DLLS})
-  if(EXISTS "${FMOD_DLL}")
-    install(FILES "${FMOD_DLL}" DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
-  endif()
-endforeach()
-
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This is used by the Flutter tool to copy the libraries to the output directory.
-set(fmod_flutter_plugin_bundled_libraries
+# The variable name MUST match the pattern: <plugin_name>_bundled_libraries
+# (where plugin_name matches the directory name used in generated_plugins.cmake,
+# i.e. "fmod_flutter", NOT "fmod_flutter_plugin").
+set(fmod_flutter_bundled_libraries
   "${FMOD_DIR}/dll/fmod.dll"
   "${FMOD_DIR}/dll/fmodstudio.dll"
   PARENT_SCOPE
