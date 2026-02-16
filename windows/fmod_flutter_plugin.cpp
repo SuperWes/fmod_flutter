@@ -4,11 +4,35 @@
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
 
+#include <windows.h>
+
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <variant>
 
 namespace fmod_flutter {
+
+// Returns the directory containing the running executable.
+static std::filesystem::path GetExecutableDir() {
+  wchar_t path_buf[MAX_PATH];
+  GetModuleFileNameW(nullptr, path_buf, MAX_PATH);
+  return std::filesystem::path(path_buf).parent_path();
+}
+
+// Resolves an asset path (e.g. "assets/audio/Master.bank") to an absolute path.
+// On Windows Flutter desktop, assets live at <exe_dir>/data/flutter_assets/<asset>.
+// Falls back to the raw path if the resolved file doesn't exist (e.g. in debug mode
+// where the CWD is the project root and the raw relative path already works).
+static std::string ResolveAssetPath(const std::string& asset_path) {
+  auto exe_dir = GetExecutableDir();
+  auto resolved = exe_dir / "data" / "flutter_assets" / asset_path;
+  if (std::filesystem::exists(resolved)) {
+    return resolved.string();
+  }
+  // Fallback: return original path (works in debug when CWD is project root)
+  return asset_path;
+}
 
 // static
 void FmodFlutterPlugin::RegisterWithRegistrar(
@@ -53,7 +77,8 @@ void FmodFlutterPlugin::HandleMethodCall(
           for (const auto &bank : *banks) {
             const auto *bank_path = std::get_if<std::string>(&bank);
             if (bank_path) {
-              if (!fmod_bridge_->LoadBank(*bank_path)) {
+              std::string resolved = ResolveAssetPath(*bank_path);
+              if (!fmod_bridge_->LoadBank(resolved)) {
                 all_loaded = false;
               }
             }
