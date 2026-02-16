@@ -3,6 +3,8 @@
 
 #include <string>
 #include <unordered_map>
+#include <thread>
+#include <atomic>
 
 #include <fmod_studio.h>
 #include <fmod.h>
@@ -27,9 +29,13 @@ class FmodBridge {
   void Release();
 
  private:
+  void UpdateLoop();
+
   FMOD_STUDIO_SYSTEM* studio_system_;
   FMOD_SYSTEM* core_system_;
   std::unordered_map<std::string, FMOD_STUDIO_EVENTINSTANCE*> event_instances_;
+  std::thread update_thread_;
+  std::atomic<bool> running_;
 };
 
 }  // namespace fmod_flutter

@@ -1,10 +1,11 @@
 #include "fmod_bridge.h"
 
 #include <iostream>
+#include <chrono>
 
 namespace fmod_flutter {
 
-FmodBridge::FmodBridge() : studio_system_(nullptr), core_system_(nullptr) {}
+FmodBridge::FmodBridge() : studio_system_(nullptr), core_system_(nullptr), running_(false) {}
 
 FmodBridge::~FmodBridge() {
   Release();
@@ -54,6 +55,11 @@ bool FmodBridge::Initialize() {
   }
 
   std::cout << "FmodBridge: FMOD initialized successfully (Windows)" << std::endl;
+
+  // Start background update thread (~60fps), matching iOS behavior
+  running_ = true;
+  update_thread_ = std::thread(&FmodBridge::UpdateLoop, this);
+
   return true;
 }
 
@@ -258,6 +264,12 @@ void FmodBridge::Update() {
 }
 
 void FmodBridge::Release() {
+  // Stop the update thread
+  running_ = false;
+  if (update_thread_.joinable()) {
+    update_thread_.join();
+  }
+
   // Stop and release all event instances
   for (auto& pair : event_instances_) {
     FMOD_Studio_EventInstance_Stop(pair.second, FMOD_STUDIO_STOP_IMMEDIATE);
@@ -273,6 +285,15 @@ void FmodBridge::Release() {
   }
 
   std::cout << "FmodBridge: Released FMOD resources" << std::endl;
+}
+
+void FmodBridge::UpdateLoop() {
+  while (running_) {
+    if (studio_system_ != nullptr) {
+      FMOD_Studio_System_Update(studio_system_);
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(16));
+  }
 }
 
 }  // namespace fmod_flutter
