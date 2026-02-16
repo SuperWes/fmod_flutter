@@ -17,11 +17,23 @@ Follow the setup instructions in the [main README](../README.md).
 3. Download **FMOD Studio API** for your platforms:
    - iOS: `.dmg` file
    - macOS: `.dmg` file
-   - Windows: `.exe` installer (run it, then copy the installed folder here)
+   - Windows: `.exe` installer (**must be run first** — see below)
    - Android: `.tar.gz` file
    - Web: `.zip` file
 
 ### 2. Place Files Here
+
+For iOS, macOS, Android, and Web, place the downloaded archives directly in this directory. The setup script will extract them automatically.
+
+For **Windows**, the SDK comes as an `.exe` installer that cannot be extracted by the script:
+
+1. Run `fmodstudioapi*win-installer.exe`
+2. It installs to `C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\` by default
+3. Copy the installed folder here as `windows/fmodstudioapi*win/`:
+   ```powershell
+   mkdir engines\windows\fmodstudioapi20312win
+   xcopy "C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\*" engines\windows\fmodstudioapi20312win\ /E /I
+   ```
 
 ```
 engines/
@@ -31,6 +43,9 @@ engines/
 ├── fmodstudioapi*html5.zip
 ├── windows/
 │   └── fmodstudioapi20XXXwin/   (copied from install location)
+│       └── api/
+│           ├── core/
+│           └── studio/
 └── README.md (this file)
 ```
 

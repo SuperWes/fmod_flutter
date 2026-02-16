@@ -12,6 +12,8 @@ A Flutter plugin for FMOD Studio audio engine integration. Add professional game
 - ✅ Cross-platform:
   - **iOS**: Full native integration (device & simulator)
   - **Android**: Full native integration
+  - **Windows**: Full native integration (x64)
+  - **macOS**: Full native integration
   - **Web**: Experimental WebAssembly support
 
 ---
@@ -39,6 +41,8 @@ FMOD Engine files are proprietary and not included in this repo. Each developer 
 2. Download **FMOD Studio API** (NOT FMOD Studio) for your platform:
    - iOS: `fmodstudioapi*ios-installer.dmg`
    - Android: `fmodstudioapi*android.tar.gz`
+   - macOS: `fmodstudioapi*mac-installer.dmg`
+   - Windows: `fmodstudioapi*win-installer.exe` (see [Windows Setup](#windows) below)
    - Web: `fmodstudioapi*html5.zip`
 
 ### 3. Run Setup Script
@@ -65,6 +69,8 @@ dart tool/setup_fmod.dart
 - Extracts FMOD SDKs
 - Copies iOS libraries to `ios/FMOD/`
 - Copies Android libraries to `example/android/app/src/main/jniLibs/`
+- Copies Windows libraries to `windows/FMOD/`
+- Copies macOS libraries to `macos/FMOD/`
 - Copies Web files to `example/web/fmod/`
 
 ### 4. Run Example
@@ -119,6 +125,8 @@ The script will:
 - Extract SDK archives
 - Copy native libraries to `android/app/src/main/jniLibs/`
 - Copy iOS libraries to `ios/FMOD/`
+- Copy macOS libraries to `macos/FMOD/`
+- Copy Windows libraries/DLLs to `windows/FMOD/`
 - Copy web files to `web/fmod/`
 
 ### Step 3: Add Your Audio Banks
@@ -272,6 +280,48 @@ The plugin uses CMake to build the native JNI wrapper that bridges Kotlin to FMO
 
 **Troubleshooting**: Rerun `dart run fmod_flutter:setup_fmod` to restore libraries.
 
+### Windows
+
+The Windows FMOD SDK is distributed as an `.exe` installer, which the setup script **cannot extract automatically**. You must run the installer first, then copy the installed SDK folder.
+
+**Step-by-step:**
+
+1. Run `fmodstudioapi*win-installer.exe` — this installs to `C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\` by default
+2. Copy the installed folder into `engines/windows/`:
+   ```powershell
+   # From your project root
+   mkdir engines\windows\fmodstudioapi20312win
+   xcopy "C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\*" engines\windows\fmodstudioapi20312win\ /E /I
+   ```
+3. Run the setup script:
+   ```bash
+   dart run fmod_flutter:setup_fmod
+   ```
+
+The setup script copies FMOD files to your app's `windows/FMOD/` directory:
+- `windows/FMOD/lib/` - Import libraries (`fmod_vc.lib`, `fmodstudio_vc.lib`)
+- `windows/FMOD/dll/` - Runtime DLLs (`fmod.dll`, `fmodstudio.dll`)
+- `windows/FMOD/include/` - Header files
+
+**Important**: The folder inside `engines/windows/` must be named `fmodstudioapi*` (e.g. `fmodstudioapi20312win`). If you just dump the files directly into `engines/windows/`, the setup script won't find the SDK.
+
+**Troubleshooting**:
+```powershell
+# Verify the SDK structure is correct:
+dir engines\windows\fmodstudioapi*\api\core\lib\x64\
+# Should show fmod.dll and fmod_vc.lib
+```
+
+### macOS
+
+The setup script copies FMOD libraries to your app's `macos/FMOD/` directory:
+- `macos/FMOD/lib/` - Dynamic libraries (`libfmod.dylib`, `libfmodstudio.dylib`)
+- `macos/FMOD/include/` - Header files
+
+The plugin's podspec automatically links the libraries. **No Podfile modifications needed!**
+
+**Troubleshooting**: Rerun `dart run fmod_flutter:setup_fmod` to restore libraries.
+
 ### Web (Experimental)
 
 Add to `web/index.html` in `<head>`:
@@ -292,6 +342,8 @@ Add to `web/index.html` in `<head>`:
 - ✅ `engines/` (or the extracted SDK files)
 - ✅ `android/app/src/main/jniLibs/libfmod*.so`
 - ✅ `ios/FMOD/`
+- ✅ `macos/FMOD/`
+- ✅ `windows/FMOD/`
 - ✅ `web/fmod/`
 
 Your team members just clone and build - no setup needed!
@@ -306,6 +358,8 @@ engines/
 android/app/src/main/jniLibs/libfmod*.so
 android/app/libs/fmod/
 ios/FMOD/
+macos/FMOD/
+windows/FMOD/
 web/fmod/
 ```
 

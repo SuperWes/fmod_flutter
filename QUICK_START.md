@@ -22,6 +22,8 @@ flutter pub get
 2. Download **FMOD Studio API** for your platforms
 3. Place in `engines/` directory in your project root
 
+> **Windows note**: The Windows SDK is an `.exe` installer. Run it first, then copy the installed folder to `engines/windows/fmodstudioapi*win/`. See the [full README](README.md#windows) for details.
+
 ### 3. Run Setup
 
 ```bash
@@ -60,10 +62,13 @@ await fmod.playEvent('event:/Music/MainTheme');
 Add this to `.gitignore` (for public/open-source projects):
 
 ```gitignore
+# FMOD SDK files (proprietary - can't redistribute publicly)
 engines/
 android/app/src/main/jniLibs/libfmod*.so
 android/app/libs/fmod/
 ios/FMOD/
+macos/FMOD/
+windows/FMOD/
 web/fmod/
 ```
 
