@@ -42,15 +42,16 @@ target_include_directories(${PLUGIN_NAME} INTERFACE
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 
 # FMOD setup
-# FMOD libraries are expected in windows/FMOD/ directory
+# FMOD libraries are expected in the consuming project's windows/FMOD/ directory
 # Run `dart run fmod_flutter:setup_fmod` to set this up
 #
-# Directory structure:
+# Directory structure (in YOUR project, not in this plugin):
 #   windows/FMOD/include/   - Header files
 #   windows/FMOD/lib/       - Import libraries (fmod_vc.lib, fmodstudio_vc.lib)
 #   windows/FMOD/dll/       - DLLs (fmod.dll, fmodstudio.dll)
 
-set(FMOD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/FMOD")
+# CMAKE_SOURCE_DIR points to the consuming project's windows/ directory
+set(FMOD_DIR "${CMAKE_SOURCE_DIR}/FMOD")
 
 # FMOD include directory
 target_include_directories(${PLUGIN_NAME} PRIVATE "${FMOD_DIR}/include")
