@@ -53,8 +53,11 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 # CMAKE_SOURCE_DIR points to the consuming project's windows/ directory
 set(FMOD_DIR "${CMAKE_SOURCE_DIR}/FMOD")
 
-# FMOD include directory
-target_include_directories(${PLUGIN_NAME} PRIVATE "${FMOD_DIR}/include")
+# FMOD include directory (SYSTEM suppresses warnings from FMOD headers)
+target_include_directories(${PLUGIN_NAME} SYSTEM PRIVATE "${FMOD_DIR}/include")
+
+# Suppress C4505 (unreferenced function removed) from FMOD's fmod_errors.h
+target_compile_options(${PLUGIN_NAME} PRIVATE /wd"4505")
 
 # Link FMOD import libraries
 target_link_libraries(${PLUGIN_NAME} PRIVATE
