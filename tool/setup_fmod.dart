@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env dart
+#!/usr/bin/env dart
 
 import 'dart:io';
 
@@ -436,7 +436,7 @@ Future<bool> setupAndroid(Directory packageRoot, Directory enginesDir) async {
     '${packageRoot.path}/android/src/main/jniLibs',
   );
 
-  final architectures = ['arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'];
+  final architectures = ['arm64-v8a', 'x86_64'];
   var pluginSoFiles = 0;
 
   for (final arch in architectures) {

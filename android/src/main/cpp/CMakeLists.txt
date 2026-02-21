@@ -55,6 +55,9 @@ target_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../libs/include
 )
 
+# 16 KB page size support for Android 15+
+target_link_options(fmod_flutter PRIVATE "-Wl,-z,max-page-size=16384")
+
 # Link libraries
 target_link_libraries(
     fmod_flutter
